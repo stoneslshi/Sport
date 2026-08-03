@@ -1,0 +1,2035 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>燃知 · 交互原型</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#141a22; --panel2:#1c242e; --line:#28323e;
+    --text:#e8edf2; --sub:#8a97a6; --accent:#ff8f33; --green:#34c759;
+    --blue:#0a84ff; --purple:#bf5af2; --red:#ff453a; --yellow:#ffd60a;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;background:#05070a;font-family:-apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif;color:var(--text);display:flex;flex-wrap:wrap;gap:40px;justify-content:center;align-items:flex-start;padding:40px 20px;}
+  .stage-title{width:100%;text-align:center;color:#c9d4df;font-weight:600;margin:0 0 4px;}
+  .stage-sub{width:100%;text-align:center;color:#61707f;font-size:13px;margin:0 0 20px;}
+
+  /* iPhone 外壳 */
+  .phone{width:390px;height:844px;background:#000;border-radius:52px;padding:12px;box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 2px #2a2f36;position:relative;flex:0 0 auto;}
+  .screen{width:100%;height:100%;background:var(--bg);border-radius:42px;overflow:hidden;position:relative;display:flex;flex-direction:column;}
+  .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:126px;height:34px;background:#000;border-radius:20px;z-index:50;}
+  .statusbar{height:44px;flex:0 0 auto;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;font-size:14px;font-weight:600;color:var(--text);}
+  .content{flex:1 1 auto;overflow-y:auto;padding:2px 18px 90px;}
+  .content::-webkit-scrollbar{display:none;}
+
+  /* 顶部标题（与正式版 inline 导航栏对齐，减少上空） */
+  .navbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 2px 8px;min-height:36px;}
+  .navbar h1{font-size:17px;font-weight:700;margin:0;letter-spacing:-.2px;line-height:1.2;}
+  .navbar .detail-back,.navbar .icon-btn{flex:0 0 auto;}
+  .icon-btn{width:34px;height:34px;border-radius:50%;background:var(--panel2);display:flex;align-items:center;justify-content:center;border:none;color:var(--text);font-size:16px;cursor:pointer;}
+
+  /* 卡片 */
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:18px;margin-bottom:14px;}
+  .card h3{margin:0 0 14px;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:space-between;}
+  .muted{color:var(--sub);font-weight:500;font-size:13px;}
+
+  /* 评分环 */
+  .score-row{display:flex;align-items:center;gap:18px;}
+  .ring{width:120px;height:120px;position:relative;flex:0 0 auto;}
+  .ring svg{transform:rotate(-90deg);}
+  .ring .val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .ring .val b{font-size:34px;font-weight:800;}
+  .ring .val span{font-size:12px;color:var(--sub);}
+  .score-info .date{font-size:13px;color:var(--sub);margin-bottom:6px;}
+  .score-info .comment{font-size:17px;font-weight:700;margin-bottom:8px;}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,143,51,.15);color:var(--accent);padding:6px 12px;border-radius:20px;font-size:13px;font-weight:600;}
+  /* 概览 · 今日决策 Hero */
+  .hero-verdict{margin-top:14px;padding:12px 14px;border-radius:12px;background:rgba(52,199,89,.1);border:1px solid rgba(52,199,89,.22);font-size:13px;line-height:1.55;color:#b8f0c4;}
+  .hero-verdict b{color:#fff;}
+  .hero-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+  .hero-metrics .hm{background:var(--panel2);border-radius:12px;padding:10px 12px;}
+  .hero-metrics .hm .lb{font-size:11px;color:var(--sub);margin-bottom:4px;}
+  .hero-metrics .hm .vv{font-size:16px;font-weight:800;}
+  .hero-metrics .hm .vv small{font-size:11px;font-weight:600;color:var(--sub);margin-left:2px;}
+  .hero-metrics .hm .bar{margin-top:6px;}
+  .hero-cta{margin-top:14px;width:100%;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:700;padding:13px;border-radius:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .hero-cta.done{background:rgba(52,199,89,.2);color:var(--green);}
+  .hero-breakdown{margin-top:10px;font-size:11px;color:var(--sub);text-align:center;}
+  /* 睡眠影响今日 */
+  .sleep-impact{font-size:12px;color:var(--sub);line-height:1.5;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);}
+  .sleep-impact b{color:#c8c6ff;font-weight:700;}
+  /* 近7日洞察 + 展开趋势 */
+  .insight-card{cursor:pointer;}
+  .insight-main{font-size:14px;font-weight:700;line-height:1.45;}
+  .insight-sub{font-size:12px;color:var(--sub);margin-top:6px;line-height:1.5;}
+  .insight-toggle{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;font-weight:600;color:var(--accent);}
+  .trend-panel{display:none;margin-top:12px;}
+  .trend-panel.show{display:block;}
+
+  /* 指标网格 */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:15px;}
+  .stat .top{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;margin-bottom:8px;}
+  .stat .num{font-size:24px;font-weight:800;}
+  .stat .num small{font-size:12px;color:var(--sub);font-weight:500;margin-left:3px;}
+  .stat .goal{font-size:11px;color:var(--sub);margin-top:6px;}
+  .bar{height:6px;border-radius:3px;background:var(--panel2);margin-top:8px;overflow:hidden;}
+  .bar>i{display:block;height:100%;border-radius:3px;}
+
+  /* 周小结 */
+  .week-grid{display:flex;}
+  .week-grid .item{flex:1;text-align:center;}
+  .week-grid .item b{display:block;font-size:18px;font-weight:800;}
+  .week-grid .item span{font-size:11px;color:var(--sub);}
+
+  /* 提示行 */
+  .tip{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line);cursor:pointer;}
+  .tip:first-of-type{border-top:none;}
+  .tip .ti{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex:0 0 auto;}
+  .tip .tt{font-size:14px;font-weight:700;}
+  .tip .td{font-size:12px;color:var(--sub);line-height:1.5;margin-top:2px;}
+  .tip .chev{margin-left:auto;color:var(--sub);font-size:16px;align-self:center;}
+
+  /* Tab 栏 */
+  .tabbar{position:absolute;bottom:0;left:0;right:0;height:82px;background:rgba(20,26,34,.92);backdrop-filter:blur(20px);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding-top:8px;z-index:40;}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--sub);font-size:10px;cursor:pointer;border:none;background:none;padding-top:4px;white-space:nowrap;}
+  .tab.active{color:var(--accent);}
+  .tab .ic{font-size:20px;}
+
+  .page{display:none;}
+  .page.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+  /* 图表 */
+  .chart-wrap{height:180px;position:relative;}
+  .seg{display:flex;background:var(--panel2);border-radius:10px;padding:3px;margin-bottom:14px;}
+  .seg button{flex:1;border:none;background:none;color:var(--sub);font-size:13px;font-weight:600;padding:7px;border-radius:8px;cursor:pointer;}
+  .seg button.active{background:var(--accent);color:#fff;}
+  .daterow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--sub);}
+  .daterow label{display:flex;flex-direction:column;gap:4px;}
+  .daterow input[type=date]{background:var(--panel2);border:1px solid rgba(255,255,255,.08);color:var(--text);border-radius:8px;padding:6px 8px;font-size:13px;color-scheme:dark;}
+  .applyBtn{margin-left:auto;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;align-self:flex-end;}
+  .wk-empty{text-align:center;color:var(--sub);padding:24px 0;font-size:13px;}
+
+  /* 运动列表 */
+  .wk{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid var(--line);}
+  .wk:first-child{border-top:none;}
+  .wk .wi{width:44px;height:44px;border-radius:13px;background:rgba(10,132,255,.16);display:flex;align-items:center;justify-content:center;font-size:20px;flex:0 0 auto;}
+  .wk .wtitle{font-size:15px;font-weight:700;}
+  .wk .wsub{font-size:12px;color:var(--sub);margin-top:2px;}
+  .wk .wcal{margin-left:auto;text-align:right;}
+  .wk .wcal b{font-size:16px;font-weight:800;color:var(--accent);}
+  .wk .wcal span{font-size:11px;color:var(--sub);}
+
+  /* 身体数据 */
+  .body-hero{display:flex;gap:14px;margin-bottom:14px;}
+  .body-hero .bx{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;text-align:center;}
+  .body-hero .bx b{font-size:26px;font-weight:800;}
+  .body-hero .bx span{font-size:12px;color:var(--sub);display:block;margin-top:4px;}
+  .body-verdict{margin-top:0;padding:12px 14px;border-radius:12px;background:rgba(10,132,255,.1);border:1px solid rgba(10,132,255,.22);font-size:13px;line-height:1.55;color:#9ec9ff;margin-bottom:14px;}
+  .body-verdict b{color:#fff;}
+  .delta-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;}
+  .delta-row .d{background:var(--panel2);border-radius:12px;padding:10px 8px;text-align:center;}
+  .delta-row .d .lb{font-size:11px;color:var(--sub);margin-bottom:4px;}
+  .delta-row .d .vv{font-size:15px;font-weight:800;}
+  .delta-row .d .vv.up{color:var(--accent);}
+  .delta-row .d .vv.down{color:var(--green);}
+  .delta-row .d .vv.flat{color:var(--text);}
+  .delta-row .d .base{font-size:10px;color:var(--sub);margin-top:3px;}
+  .recover-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .recover-grid .r{background:var(--panel2);border-radius:12px;padding:12px 8px;text-align:center;}
+  .recover-grid .r .vv{font-size:18px;font-weight:800;}
+  .recover-grid .r .lb{font-size:11px;color:var(--sub);margin-top:4px;}
+  .recover-grid .r .hint{font-size:10px;color:var(--sub);margin-top:3px;}
+  .meta-box{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;}
+  .meta-box .m{background:var(--panel2);border-radius:12px;padding:12px;}
+  .meta-box .m .lb{font-size:11px;color:var(--sub);}
+  .meta-box .m .vv{font-size:18px;font-weight:800;margin-top:4px;}
+  .meta-box .m .sub{font-size:11px;color:var(--sub);margin-top:4px;line-height:1.4;}
+  .kv{display:flex;justify-content:space-between;padding:13px 0;border-top:1px solid var(--line);font-size:14px;}
+  .kv:first-child{border-top:none;}
+  .kv span{color:var(--sub);}
+  .kv b{font-weight:700;}
+  .badge{padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;}
+
+  /* AI 建议 */
+  .ai-hero{background:linear-gradient(135deg,#2a1a3e,#1a2340);border:1px solid #3a2a56;border-radius:20px;padding:20px;margin-bottom:14px;text-align:center;}
+  .ai-hero .spark{font-size:34px;}
+  .ai-hero h2{margin:8px 0 4px;font-size:19px;}
+  .ai-hero p{margin:0;font-size:13px;color:var(--sub);line-height:1.5;}
+  .btn-primary{width:100%;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:700;padding:14px;border-radius:14px;cursor:pointer;margin-top:14px;}
+  .btn-secondary{width:100%;border:1px solid rgba(255,143,51,.45);background:rgba(255,143,51,.12);color:var(--accent);font-size:14px;font-weight:700;padding:12px;border-radius:12px;cursor:pointer;margin-top:10px;}
+  .btn-ghost{width:100%;border:1px solid var(--line);background:none;color:var(--text);font-size:14px;font-weight:600;padding:12px;border-radius:12px;cursor:pointer;margin-top:10px;}
+  .ai-msg{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;font-size:14px;line-height:1.65;color:#dbe3ec;}
+  .ai-msg h4{margin:14px 0 6px;font-size:14px;color:var(--accent);}
+  .ai-msg h4:first-child{margin-top:0;}
+  .ai-msg ul{margin:0;padding-left:18px;}
+  .ai-msg li{margin:4px 0;}
+  .typing{display:inline-flex;gap:4px;}
+  .typing i{width:7px;height:7px;border-radius:50%;background:var(--sub);animation:blink 1.2s infinite;}
+  .typing i:nth-child(2){animation-delay:.2s;}
+  .typing i:nth-child(3){animation-delay:.4s;}
+  @keyframes blink{0%,60%,100%{opacity:.3;}30%{opacity:1;}}
+
+  /* 上周建议 · 图文周报 */
+  .week-review{background:linear-gradient(145deg,rgba(255,143,51,.16),var(--panel));border:1px solid rgba(255,143,51,.28);border-radius:20px;padding:16px;margin-bottom:14px;}
+  .week-review .wr-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;}
+  .week-review .wr-head h3{margin:0;font-size:17px;display:flex;align-items:center;gap:6px;}
+  .week-review .wr-head .sub{font-size:12px;color:var(--sub);margin-top:4px;}
+  .week-review .link-hist{font-size:12px;font-weight:700;color:var(--accent);cursor:pointer;white-space:nowrap;padding:6px 0;}
+  .wr-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+  .wr-tile{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px;}
+  .wr-tile .ic{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex:0 0 auto;}
+  .wr-tile b{display:block;font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .wr-tile span{font-size:11px;color:var(--sub);}
+  .wr-types{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;}
+  .wr-types .lbl{font-size:11px;font-weight:700;color:var(--sub);margin-bottom:8px;}
+  .wr-bar{display:flex;align-items:center;gap:8px;margin:6px 0;}
+  .wr-bar .name{width:48px;font-size:12px;flex:0 0 auto;}
+  .wr-bar .track{flex:1;height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;}
+  .wr-bar .fill{height:100%;background:var(--accent);border-radius:4px;}
+  .wr-bar .n{width:18px;text-align:right;font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums;}
+  .wr-chips{display:flex;gap:6px;margin-bottom:10px;}
+  .wr-chip{flex:1;text-align:center;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 4px;}
+  .wr-chip b{display:block;font-size:13px;font-weight:800;}
+  .wr-chip span{font-size:10px;color:var(--sub);}
+  .wr-preview{font-size:13px;color:var(--sub);line-height:1.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  .wr-empty-glyphs{display:flex;gap:10px;margin:8px 0 12px;}
+  .wr-empty-glyphs .g{flex:1;text-align:center;}
+  .wr-empty-glyphs .g .box{width:52px;height:52px;margin:0 auto 6px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;}
+  .wr-empty-glyphs .g span{font-size:11px;color:var(--sub);}
+  .hist-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);cursor:pointer;}
+  .hist-row:first-child{border-top:none;}
+  .hist-row .hi{width:48px;height:48px;border-radius:12px;background:rgba(255,143,51,.14);display:flex;align-items:center;justify-content:center;font-size:20px;flex:0 0 auto;}
+  .hist-row .ht{font-size:14px;font-weight:700;}
+  .hist-row .hs{font-size:12px;color:var(--sub);margin-top:3px;}
+  .hist-row .chev{margin-left:auto;color:var(--sub);}
+
+  /* 设置弹层 */
+  .sheet-mask{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:60;display:none;align-items:flex-end;}
+  .sheet-mask.show{display:flex;}
+  .sheet{width:100%;background:var(--bg);border-radius:24px 24px 0 0;padding:8px 18px 30px;max-height:80%;overflow-y:auto;animation:up .3s ease;}
+  @keyframes up{from{transform:translateY(100%);}to{transform:none;}}
+  .sheet .grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:8px auto 16px;}
+  .sheet h2{font-size:20px;margin:0 0 16px;}
+  .field{margin-bottom:16px;}
+  .field label{font-size:13px;color:var(--sub);display:block;margin-bottom:6px;}
+  .field input{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;color:var(--text);font-size:15px;}
+  .row-set{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-top:1px solid var(--line);font-size:15px;}
+  .switch{width:48px;height:28px;background:var(--green);border-radius:14px;position:relative;}
+  .switch::after{content:"";position:absolute;right:2px;top:2px;width:24px;height:24px;border-radius:50%;background:#fff;}
+
+  /* 今日运动（首页） */
+  .today-wk{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line);cursor:pointer;}
+  .today-wk:first-of-type{border-top:none;}
+  .today-wk .twi{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;flex:0 0 auto;}
+  .today-wk .twt{font-size:14px;font-weight:700;}
+  .today-wk .tws{font-size:11px;color:var(--sub);margin-top:2px;}
+  .today-wk .twk{margin-left:auto;text-align:right;}
+  .today-wk .twk b{font-size:15px;font-weight:800;color:var(--accent);}
+  .today-wk .twk span{font-size:10px;color:var(--sub);}
+  .today-wk .chev{color:var(--sub);font-size:15px;margin-left:4px;}
+  .empty-line{text-align:center;color:var(--sub);font-size:13px;padding:12px 0;}
+
+  /* 运动类型分组统计 */
+  .type-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;}
+  .type-scroll::-webkit-scrollbar{display:none;}
+  .type-card{flex:0 0 auto;min-width:112px;background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:13px 14px;cursor:pointer;transition:border-color .15s,background .15s;}
+  .type-card:active{transform:scale(.98);}
+  .type-card.selected{border-color:var(--accent);background:rgba(255,143,51,.1);}
+  .type-card .th{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;margin-bottom:8px;}
+  .type-card .th .dot{width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;}
+  .type-card .tn{font-size:20px;font-weight:800;}
+  .type-card .tn small{font-size:11px;color:var(--sub);font-weight:500;}
+  .type-card .tsub{font-size:11px;color:var(--sub);margin-top:3px;}
+  .type-hint{font-size:11px;color:var(--sub);margin:0 4px 10px;opacity:.75;}
+  .filter-bar{display:flex;align-items:center;gap:8px;background:var(--panel2);border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:13px;}
+  .filter-bar .clr{margin-left:auto;background:none;border:none;color:var(--sub);font-size:13px;cursor:pointer;font-weight:600;}
+  .wk.clickable{cursor:pointer;}
+  .wk .chev{color:var(--sub);font-size:15px;margin-left:2px;}
+
+  /* 详情页 */
+  .detail-back{display:inline-flex;align-items:center;gap:4px;background:none;border:none;color:var(--accent);font-size:15px;font-weight:600;cursor:pointer;padding:0;}
+  .detail-hero{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px;margin-bottom:14px;text-align:center;}
+  .detail-hero .dtype{display:inline-flex;align-items:center;gap:8px;font-size:20px;font-weight:800;}
+  .detail-hero .dtype .di{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;}
+  .detail-hero .ddate{font-size:13px;color:var(--sub);margin-top:6px;}
+  .metric-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  .metric-grid .mc{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px;text-align:center;}
+  .metric-grid .mc b{font-size:19px;font-weight:800;display:block;}
+  .metric-grid .mc small{font-size:10px;color:var(--sub);}
+  .metric-grid .mc span{font-size:11px;color:var(--sub);display:block;margin-top:3px;}
+
+  /* 地图轨迹 */
+  .map-box{position:relative;height:200px;border-radius:16px;overflow:hidden;border:1px solid var(--line);
+    background:linear-gradient(160deg,#16202b,#0e1620);}
+  .map-box svg{position:absolute;inset:0;width:100%;height:100%;}
+  .map-pin{position:absolute;font-size:16px;transform:translate(-50%,-100%);}
+  .map-badge{position:absolute;left:12px;top:12px;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);
+    padding:5px 10px;border-radius:8px;font-size:11px;color:var(--sub);}
+  .split-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-top:1px solid var(--line);font-size:13px;}
+  .split-row:first-child{border-top:none;}
+  .split-row .sp-bar{flex:1;height:6px;border-radius:3px;background:var(--panel2);margin:0 12px;overflow:hidden;}
+  .split-row .sp-bar>i{display:block;height:100%;background:var(--accent);border-radius:3px;}
+
+  /* ===== 分享海报预览 ===== */
+  .share-stage{display:flex;flex-direction:column;align-items:center;gap:14px;padding-bottom:20px;}
+  .share-hint{font-size:12px;color:var(--sub);text-align:center;line-height:1.5;padding:0 4px 4px;}
+  .poster-wrap{width:300px;border-radius:18px;overflow:hidden;box-shadow:0 16px 40px rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.08);}
+  .poster-route{position:relative;height:520px;background:#0a0e14;color:#fff;}
+  .poster-route .mapbg{position:absolute;inset:0;}
+  .poster-route .mapbg svg{width:100%;height:100%;display:block;}
+  .poster-route .veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.12) 0%,rgba(0,0,0,.2) 38%,rgba(0,0,0,.78) 70%,rgba(0,0,0,.92) 100%);}
+  .poster-route .top{position:absolute;left:14px;right:14px;top:14px;display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:600;z-index:2;opacity:.9;}
+  .poster-route .brand{display:inline-flex;align-items:center;gap:5px;background:rgba(0,0,0,.4);padding:5px 10px;border-radius:20px;backdrop-filter:blur(8px);}
+  .poster-route .hero{position:absolute;left:18px;right:18px;bottom:22px;z-index:2;}
+  .poster-route .type{font-size:13px;opacity:.85;margin-bottom:6px;}
+  .poster-route .big{font-size:52px;font-weight:800;letter-spacing:-1.5px;line-height:1;font-variant-numeric:tabular-nums;}
+  .poster-route .big small{font-size:18px;font-weight:600;margin-left:4px;opacity:.7;}
+  .poster-route .subrow{display:flex;gap:14px;margin-top:12px;font-size:12px;opacity:.85;}
+  .poster-route .hook{margin-top:14px;font-size:14px;font-weight:600;line-height:1.4;}
+  .poster-route .mark{position:absolute;right:14px;bottom:12px;font-size:10px;opacity:.4;z-index:2;}
+  .poster-minimal{height:520px;background:radial-gradient(120% 80% at 18% 0%,#2a1a0e 0%,#0b0f14 55%,#070a0e 100%);color:#fff;padding:22px;display:flex;flex-direction:column;}
+  .poster-minimal .top{display:flex;justify-content:space-between;font-size:12px;opacity:.65;}
+  .poster-minimal .mid{flex:1;display:flex;flex-direction:column;justify-content:center;}
+  .poster-minimal .type{font-size:15px;font-weight:700;color:var(--accent);margin-bottom:10px;}
+  .poster-minimal .big{font-size:64px;font-weight:800;letter-spacing:-2px;line-height:1;}
+  .poster-minimal .unit{font-size:16px;opacity:.6;margin-top:8px;}
+  .poster-minimal .stats{display:flex;gap:18px;margin-top:28px;padding-top:18px;border-top:1px solid rgba(255,255,255,.12);}
+  .poster-minimal .stats div b{display:block;font-size:18px;font-weight:800;}
+  .poster-minimal .stats div span{font-size:11px;opacity:.5;}
+  .poster-minimal .hook{margin-top:auto;font-size:15px;font-weight:600;}
+  .poster-minimal .mark{font-size:10px;opacity:.35;margin-top:10px;}
+  .poster-week{height:520px;background:radial-gradient(120% 80% at 15% 0%,#6b3814 0%,#121820 48%,#070a0e 100%);color:#fff;padding:22px;display:flex;flex-direction:column;}
+  .poster-week .top{display:flex;justify-content:space-between;font-size:12px;}
+  .poster-week .top .brand{opacity:.7;font-weight:600;}
+  .poster-week .top .range{opacity:.45;}
+  .poster-week .period{font-size:12px;opacity:.45;margin-top:16px;}
+  .poster-week .hero-num{font-size:64px;font-weight:800;letter-spacing:-2px;line-height:1;margin-top:4px;}
+  .poster-week .hero-num small{font-size:18px;font-weight:600;opacity:.55;margin-left:4px;}
+  .poster-week .meta{font-size:13px;opacity:.65;margin-top:6px;font-weight:500;}
+  .poster-week .sec{font-size:11px;opacity:.4;font-weight:700;margin:22px 0 6px;}
+  .poster-week .trow{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:13px;}
+  .poster-week .trow .di{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex:0 0 auto;}
+  .poster-week .trow .nm{width:72px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 0 auto;}
+  .poster-week .trow .cnt{font-size:18px;font-weight:800;margin-right:2px;margin-left:auto;}
+  .poster-week .trow .cntu{font-size:11px;opacity:.45;margin-right:8px;}
+  .poster-week .trow .met{width:88px;text-align:right;font-weight:700;color:#ff8f33;font-size:12px;flex:0 0 auto;}
+  .poster-week .hook{margin-top:auto;font-size:14px;font-weight:600;line-height:1.45;padding-top:16px;}
+  .poster-week .mark{font-size:10px;opacity:.3;margin-top:10px;}
+  .share-old{opacity:.55;transform:scale(.92);transform-origin:top center;margin-top:4px;}
+  .share-old-label{font-size:11px;color:var(--sub);text-align:center;margin:12px 0 6px;}
+  .poster-legacy{height:420px;background:linear-gradient(160deg,#1a2430,#121820);color:#fff;padding:18px;display:flex;flex-direction:column;}
+  .poster-legacy .lg-hd{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+  .poster-legacy .lg-ic{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;}
+  .poster-legacy .lg-title{font-size:16px;font-weight:800;}
+  .poster-legacy .lg-sub{font-size:11px;opacity:.55;}
+  .poster-legacy .lg-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex:1;}
+  .poster-legacy .lg-grid div{background:rgba(255,255,255,.06);border-radius:12px;padding:12px;}
+  .poster-legacy .lg-grid b{display:block;font-size:18px;font-weight:800;}
+  .poster-legacy .lg-grid span{font-size:11px;opacity:.5;}
+  .poster-legacy .lg-cap{font-size:12px;opacity:.7;margin-top:12px;line-height:1.4;}
+  .poster-legacy .lg-ft{font-size:10px;opacity:.4;margin-top:10px;}
+
+  /* Markdown 渲染样式（AI 建议） */
+  .md h1,.md h2,.md h3{margin:14px 0 8px;font-weight:800;line-height:1.35;}
+  .md h1{font-size:18px;} .md h2{font-size:16px;} .md h3{font-size:15px;color:var(--accent);}
+  .md h1:first-child,.md h2:first-child,.md h3:first-child{margin-top:0;}
+  .md p{margin:8px 0;}
+  .md ul,.md ol{margin:8px 0;padding-left:20px;}
+  .md li{margin:5px 0;}
+  .md strong{color:#fff;font-weight:700;}
+  .md em{color:var(--accent);font-style:normal;}
+  .md code{background:var(--panel2);padding:2px 6px;border-radius:5px;font-size:13px;font-family:ui-monospace,Menlo,monospace;}
+  .md hr{border:none;border-top:1px solid var(--line);margin:12px 0;}
+  .md blockquote{margin:8px 0;padding:8px 12px;border-left:3px solid var(--accent);background:rgba(255,143,51,.08);border-radius:0 8px 8px 0;color:var(--sub);}
+  .md table{width:100%;border-collapse:collapse;margin:8px 0;font-size:13px;}
+  .md th,.md td{border:1px solid var(--line);padding:6px 8px;text-align:left;}
+  .md th{background:var(--panel2);}
+
+  /* ===== 睡眠 ===== */
+  .sleep-hero{display:flex;align-items:center;gap:18px;}
+  .sleep-hero .ring .val b{font-size:30px;}
+  .sleep-hero .info .big{font-size:30px;font-weight:800;line-height:1.1;}
+  .sleep-hero .info .big small{font-size:14px;color:var(--sub);font-weight:600;margin-left:2px;}
+  .sleep-hero .info .sub{font-size:13px;color:var(--sub);margin-top:6px;}
+  .sleep-hero .info .rng{font-size:13px;margin-top:8px;display:inline-flex;align-items:center;gap:6px;}
+  .sleep-hero .info .rng b{font-weight:700;}
+  /* 昨夜一句话结论 */
+  .sleep-verdict{margin-top:14px;padding:12px 14px;border-radius:12px;background:rgba(94,92,230,.12);border:1px solid rgba(94,92,230,.25);font-size:13px;line-height:1.55;color:#c8c6ff;}
+  .sleep-verdict b{color:#fff;font-weight:700;}
+  /* 对比平常：三列差值 */
+  .sleep-vs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px;}
+  .sleep-vs .cell{background:var(--panel2);border-radius:12px;padding:10px 8px;text-align:center;}
+  .sleep-vs .cell .lb{font-size:11px;color:var(--sub);margin-bottom:4px;}
+  .sleep-vs .cell .vv{font-size:15px;font-weight:800;}
+  .sleep-vs .cell .vv.up{color:var(--green);}
+  .sleep-vs .cell .vv.down{color:var(--accent);}
+  .sleep-vs .cell .vv.flat{color:var(--text);}
+  .sleep-vs .cell .base{font-size:10px;color:var(--sub);margin-top:3px;}
+  /* 阶段占比条 */
+  .stage-bar{display:flex;height:26px;border-radius:8px;overflow:hidden;margin:4px 0 14px;}
+  .stage-bar>i{height:100%;}
+  .stage-legend{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;}
+  .stage-legend .lg{display:flex;align-items:center;gap:8px;font-size:13px;}
+  .stage-legend .lg .sw{width:12px;height:12px;border-radius:4px;flex:0 0 auto;}
+  .stage-legend .lg .nm{color:var(--sub);}
+  .stage-legend .lg .vv{margin-left:auto;font-weight:700;}
+  /* 分期时间轴（简化 hypnogram） */
+  .hypno-wrap{margin:4px 0 12px;}
+  .hypno{position:relative;height:88px;background:var(--panel2);border-radius:12px;overflow:hidden;}
+  .hypno .lane{position:absolute;left:0;right:0;height:1px;background:rgba(255,255,255,.06);}
+  .hypno .lane.l0{top:22%;} .hypno .lane.l1{top:44%;} .hypno .lane.l2{top:66%;} .hypno .lane.l3{top:88%;}
+  .hypno .ylabels{position:absolute;left:6px;top:0;bottom:0;width:28px;font-size:9px;color:var(--sub);display:flex;flex-direction:column;justify-content:space-around;pointer-events:none;z-index:2;}
+  .hypno .plot{position:absolute;left:36px;right:8px;top:6px;bottom:6px;}
+  .hypno .hseg{position:absolute;border-radius:2px;min-width:2px;}
+  .hypno-axis{display:flex;justify-content:space-between;padding:6px 8px 0 36px;font-size:10px;color:var(--sub);}
+  /* 午睡小卡 */
+  .nap-chip{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(10,132,255,.1);border:1px solid rgba(10,132,255,.22);margin-top:10px;font-size:13px;}
+  .nap-chip .ic{font-size:18px;}
+  .nap-chip .tt{font-weight:700;}
+  .nap-chip .td{color:var(--sub);font-size:12px;margin-top:2px;}
+  /* 夜间生命体征：呼吸 / 血氧 / 体温 */
+  .vitals{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:2px;}
+  .vital{background:var(--panel2);border-radius:14px;padding:14px 10px;text-align:center;}
+  .vital .ic{font-size:18px;margin-bottom:6px;opacity:.9;}
+  .vital .vv{font-size:20px;font-weight:800;line-height:1.1;}
+  .vital .vv small{font-size:11px;font-weight:600;color:var(--sub);margin-left:2px;}
+  .vital .lb{font-size:11px;color:var(--sub);margin-top:6px;}
+  .vital .hint{font-size:10px;color:var(--sub);margin-top:4px;opacity:.85;}
+  .vital.miss{opacity:.55;}
+  .vital.miss .vv{font-size:15px;font-weight:700;color:var(--sub);}
+  .vitals-note{font-size:11px;color:var(--sub);line-height:1.5;margin-top:10px;}
+  /* 作息规律：每晚睡眠时段条 */
+  .sched-row{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:12px;}
+  .sched-row .day{width:30px;color:var(--sub);flex:0 0 auto;}
+  .sched-track{flex:1;height:12px;background:var(--panel2);border-radius:6px;position:relative;overflow:hidden;}
+  .sched-track>i{position:absolute;top:0;height:100%;border-radius:6px;background:linear-gradient(90deg,#5e5ce6,#0a84ff);}
+  .sched-row .dur{width:42px;text-align:right;color:var(--text);font-weight:600;flex:0 0 auto;}
+  .sched-axis{display:flex;justify-content:space-between;font-size:10px;color:var(--sub);padding:4px 52px 0 40px;}
+  .sched-hint{font-size:12px;color:var(--sub);line-height:1.55;margin:0 0 10px;}
+  /* 关联分析卡 */
+  .corr{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line);}
+  .corr:first-of-type{border-top:none;}
+  .corr .ci{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex:0 0 auto;}
+  .corr .ct{font-size:14px;font-weight:700;}
+  .corr .cd{font-size:12px;color:var(--sub);line-height:1.55;margin-top:3px;}
+  /* 睡眠小卡（概览） */
+  .sleep-mini{display:flex;align-items:center;gap:14px;cursor:pointer;}
+  .sleep-mini .moon{width:46px;height:46px;border-radius:14px;background:rgba(94,92,230,.18);display:flex;align-items:center;justify-content:center;font-size:22px;flex:0 0 auto;}
+  .sleep-mini .big{font-size:22px;font-weight:800;}
+  .sleep-mini .big small{font-size:12px;color:var(--sub);font-weight:600;}
+  .sleep-mini .sub{font-size:12px;color:var(--sub);margin-top:2px;}
+  .sleep-mini .sc{margin-left:auto;text-align:center;}
+  .sleep-mini .sc b{font-size:20px;font-weight:800;color:#7d7bff;}
+  .sleep-mini .sc span{font-size:10px;color:var(--sub);display:block;}
+</style>
+</head>
+<body>
+
+<div class="stage-title">燃知 · 可点击交互原型</div>
+<div class="stage-sub">运动页：类型卡可点过滤 · 右上角 ↗ 汇总分享 · 详情 ↗ 单次海报</div>
+
+<div class="phone">
+  <div class="notch"></div>
+  <div class="screen">
+    <div class="statusbar"><span>9:41</span><span>&#9679;&#9679;&#9679; &#128246; &#128267;</span></div>
+    <div class="content">
+
+      <!-- ============ 概览 · 今日决策页 ============ -->
+      <div class="page active" id="page-home">
+        <div class="navbar">
+          <h1>燃知</h1>
+          <button class="icon-btn" onclick="openSheet()">&#9881;</button>
+        </div>
+
+        <!-- Hero：评分 + 结论 + 缺口 CTA -->
+        <div class="card">
+          <div class="score-row">
+            <div class="ring">
+              <svg width="120" height="120">
+                <circle cx="60" cy="60" r="52" stroke="rgba(52,199,89,.15)" stroke-width="12" fill="none"/>
+                <circle cx="60" cy="60" r="52" stroke="#34c759" stroke-width="12" fill="none"
+                  stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="62"/>
+              </svg>
+              <div class="val"><b>81</b><span>活动评分</span></div>
+            </div>
+            <div class="score-info">
+              <div class="date">7月31日 周五</div>
+              <div class="comment">状态不错，再推一把</div>
+              <div class="chip">能量 89% · 锻炼已达标</div>
+            </div>
+          </div>
+          <div class="hero-verdict">
+            今日活动能量还差 <b>44 kcal</b> 即可达标；昨夜睡眠评分 82，恢复良好，适合完成一次轻松有氧。
+          </div>
+          <div class="hero-metrics">
+            <div class="hm">
+              <div class="lb">&#128293; 活动能量</div>
+              <div class="vv">356<small>/ 400 kcal</small></div>
+              <div class="bar"><i style="width:89%;background:var(--accent)"></i></div>
+            </div>
+            <div class="hm">
+              <div class="lb">&#9201; 锻炼时长</div>
+              <div class="vv">42<small>/ 30 分钟</small></div>
+              <div class="bar"><i style="width:100%;background:var(--blue)"></i></div>
+            </div>
+            <div class="hm">
+              <div class="lb">&#128694; 步数</div>
+              <div class="vv">9,240<small>步</small></div>
+            </div>
+            <div class="hm">
+              <div class="lb">&#128506; 距离</div>
+              <div class="vv">6.8<small>km</small></div>
+            </div>
+          </div>
+          <button class="hero-cta" onclick="go(document.querySelector('.tab[data-p=ai]'),'ai')">
+            还差 44 kcal · 生成本日建议
+          </button>
+          <div class="hero-breakdown">评分构成：能量 40% · 锻炼时长 30% · 步数仅展示不计入目标</div>
+        </div>
+
+        <!-- 今日提示 Top 2（可点） -->
+        <div class="card">
+          <h3>今日提示 <span class="muted">优先行动</span></h3>
+          <div class="tip" onclick="go(document.querySelector('.tab[data-p=ai]'),'ai')">
+            <div class="ti" style="background:rgba(255,143,51,.15);color:var(--accent)">&#128293;</div>
+            <div style="flex:1">
+              <div class="tt">再消耗 44 kcal 就达标</div>
+              <div class="td">约等于快走 10 分钟。点此生成本日运动建议。</div>
+            </div>
+            <span class="chev">&#8250;</span>
+          </div>
+          <div class="tip" onclick="goSleep()">
+            <div class="ti" style="background:rgba(94,92,230,.18);color:#7d7bff">&#127769;</div>
+            <div style="flex:1">
+              <div class="tt">昨夜恢复良好</div>
+              <div class="td">睡眠分 82，深睡充足；今日可保持中等强度。</div>
+            </div>
+            <span class="chev">&#8250;</span>
+          </div>
+        </div>
+
+        <!-- 今日运动 -->
+        <div class="card">
+          <h3>今日运动 <span class="muted" id="todayWkSummary"></span></h3>
+          <div id="todayWkList"></div>
+        </div>
+
+        <!-- 昨夜睡眠：含对今日影响 -->
+        <div class="card" onclick="goSleep()">
+          <h3>昨夜睡眠 <span class="muted">影响今日强度</span></h3>
+          <div class="sleep-mini">
+            <div class="moon">&#127769;</div>
+            <div>
+              <div class="big">7<small>时</small> 18<small>分</small></div>
+              <div class="sub">深睡 1时32分 · 23:42 入睡</div>
+            </div>
+            <div class="sc"><b>82</b><span>睡眠分</span></div>
+            <span class="chev" style="color:var(--sub);font-size:16px;margin-left:6px;">&#8250;</span>
+          </div>
+          <div class="sleep-impact">昨夜比平常早睡 18 分钟，恢复良好 → <b>今日宜保持轻松有氧，不必硬上高强度</b></div>
+        </div>
+
+        <!-- 近7日洞察：默认一句话，展开才见图表 -->
+        <div class="card insight-card">
+          <h3>近 7 日洞察 <span style="color:var(--green);font-size:14px">&#8599; +14%</span></h3>
+          <div class="insight-main">活动能量周环比上升 14%，周末掉量明显；能量达标 5/7 天。</div>
+          <div class="insight-sub">日均 8,610 步 · 锻炼 186 分钟 · 总 44.2 km。点下方展开查看趋势图。</div>
+          <div class="insight-toggle" onclick="toggleTrends(event)">
+            <span id="trendToggleLabel">查看趋势图表</span>
+            <span id="trendToggleChev">&#9660;</span>
+          </div>
+          <div class="trend-panel" id="trendPanel">
+            <div class="seg" style="margin-top:4px;">
+              <button class="active" onclick="switchRange(this,'w')">近7天</button>
+              <button onclick="switchRange(this,'m')">近30天</button>
+            </div>
+            <div style="margin-bottom:12px;">
+              <h3 style="margin-bottom:8px;">步数 <span class="muted">日均 8,610 步</span></h3>
+              <div class="chart-wrap"><canvas id="stepsChart"></canvas></div>
+            </div>
+            <div style="margin-bottom:12px;">
+              <h3 style="margin-bottom:8px;">活动能量 <span class="muted">日均 312 kcal</span></h3>
+              <div class="chart-wrap"><canvas id="energyChart"></canvas></div>
+            </div>
+            <div>
+              <h3 style="margin-bottom:8px;">心率区间分布 <span class="muted">近7天</span></h3>
+              <div class="chart-wrap"><canvas id="hrChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ 运动 ============ -->
+      <div class="page" id="page-workouts">
+        <div class="navbar">
+          <h1>运动记录</h1>
+          <button class="icon-btn" title="分享区间汇总" onclick="openShareFromWorkouts()">&#8599;</button>
+        </div>
+        <div class="seg" id="wkRange">
+          <button class="active" onclick="switchWkRange(this,'w')">近7天</button>
+          <button onclick="switchWkRange(this,'m')">近1个月</button>
+          <button onclick="switchWkRange(this,'y')">近1年</button>
+          <button onclick="switchWkRange(this,'c')">自定义</button>
+        </div>
+        <div class="card" id="wkDateCard" style="display:none;padding:12px 14px;">
+          <div class="daterow">
+            <label>开始<input type="date" id="wkStart"></label>
+            <span class="muted">→</span>
+            <label>结束<input type="date" id="wkEnd"></label>
+            <button class="applyBtn" onclick="applyWkDate()">统计</button>
+          </div>
+        </div>
+        <div class="card" style="text-align:center;padding:22px;">
+          <div style="display:flex;justify-content:space-around;">
+            <div><b style="font-size:24px" id="wkCount">7</b><div class="muted" id="wkCountLbl">近7天次数</div></div>
+            <div><b style="font-size:24px" id="wkMin">248</b><div class="muted">锻炼分钟</div></div>
+            <div><b style="font-size:24px" id="wkKcal">1,860</b><div class="muted">总消耗 kcal</div></div>
+          </div>
+          <div class="muted" id="wkRangeHint" style="margin-top:10px;font-size:12px;">2026/7/25 – 2026/7/31</div>
+        </div>
+        <div class="muted" style="font-size:12px;margin:2px 4px 8px;font-weight:700;color:var(--text);">按运动类型统计</div>
+        <div class="type-scroll" id="wkTypeStats"></div>
+        <div class="type-hint" id="wkTypeHint">点击卡片可只看该类运动，再点一次或点清除即可恢复</div>
+        <div id="wkFilterBar" class="filter-bar" style="display:none;"></div>
+        <div class="card" id="wkList"></div>
+      </div>
+
+      <!-- ============ 身体 · 趋势 + 恢复基线 ============ -->
+      <div class="page" id="page-body">
+        <div class="navbar"><h1>身体</h1></div>
+
+        <!-- Hero：结论 + 三指标 -->
+        <div class="card" style="margin-bottom:14px;">
+          <div class="body-verdict" style="margin-bottom:14px;">
+            BMI 正常 · 体脂适中 · 静息心率优秀 → <b>当前适合维持训练强度</b>，继续规律有氧即可。
+          </div>
+          <div class="body-hero" style="margin:0;">
+            <div class="bx"><b style="color:var(--green)">22.3</b><span>BMI · 正常</span></div>
+            <div class="bx"><b style="color:var(--blue)">68.5</b><span>体重 kg</span></div>
+            <div class="bx"><b style="color:var(--purple)">16.8%</b><span>体脂率</span></div>
+          </div>
+        </div>
+
+        <!-- 体重·体脂趋势 -->
+        <div class="card">
+          <h3>体重 · 体脂趋势 <span class="muted" id="bodyTrendRangeLbl">近30天</span></h3>
+          <div class="seg" id="bodyTrendSeg">
+            <button class="active" onclick="switchBodyTrend(this,'30')">近30天</button>
+            <button onclick="switchBodyTrend(this,'90')">近90天</button>
+          </div>
+          <div class="delta-row">
+            <div class="d"><div class="lb">体重</div><div class="vv down" id="bodyWDelta">−0.8 kg</div><div class="base">较月初</div></div>
+            <div class="d"><div class="lb">体脂</div><div class="vv down" id="bodyFDelta">−0.4%</div><div class="base">较月初</div></div>
+            <div class="d"><div class="lb">BMI</div><div class="vv flat" id="bodyBDelta">持平</div><div class="base">22.3</div></div>
+          </div>
+          <div class="chart-wrap" style="height:160px"><canvas id="bodyWeightChart"></canvas></div>
+          <div class="muted" style="font-size:11px;margin-top:8px;">数据线来自 Apple 健康体重记录；体脂有采样时叠加显示。</div>
+        </div>
+
+        <!-- 恢复基线（体质，非昨夜） -->
+        <div class="card">
+          <h3>恢复基线 <span class="muted">近7日体质</span></h3>
+          <div class="recover-grid">
+            <div class="r">
+              <div class="vv" style="color:var(--green)">58</div>
+              <div class="lb">静息心率</div>
+              <div class="hint">↓3 · 优秀</div>
+            </div>
+            <div class="r">
+              <div class="vv" style="color:var(--blue)">48</div>
+              <div class="lb">HRV ms</div>
+              <div class="hint">偏高 · 恢复好</div>
+            </div>
+            <div class="r">
+              <div class="vv">72</div>
+              <div class="lb">7日均心率</div>
+              <div class="hint">次/分</div>
+            </div>
+          </div>
+          <div class="tip" style="margin-top:10px;border-top:1px solid var(--line);padding-top:12px;">
+            <div class="ti" style="background:rgba(52,199,89,.15);color:var(--green)">&#10084;</div>
+            <div><div class="tt">恢复基线良好</div><div class="td">静息心率与 HRV 均处较好区间；与睡眠页「昨夜」不同，这里看的是近一周体质基线。</div></div>
+          </div>
+        </div>
+
+        <!-- 代谢：BMR / TDEE -->
+        <div class="card">
+          <h3>代谢估算 <span class="muted">本地公式</span></h3>
+          <div class="meta-box">
+            <div class="m">
+              <div class="lb">基础代谢 BMR</div>
+              <div class="vv">1,612 <small style="font-size:12px;font-weight:600;color:var(--sub)">kcal/天</small></div>
+              <div class="sub">Mifflin-St Jeor</div>
+            </div>
+            <div class="m">
+              <div class="lb">估算消耗 TDEE</div>
+              <div class="vv">2,257 <small style="font-size:12px;font-weight:600;color:var(--sub)">kcal/天</small></div>
+              <div class="sub">按近7日活动水平 ×1.4</div>
+            </div>
+          </div>
+          <div class="tip" style="margin-top:10px;border-top:1px solid var(--line);padding-top:12px;">
+            <div class="ti" style="background:rgba(255,143,51,.15);color:var(--accent)">&#128293;</div>
+            <div><div class="tt">与今日能量目标</div><div class="td">设置里活动能量目标 400 kcal，约为维持性活动消耗的一部分；达标有助于接近 TDEE 活动量。</div></div>
+          </div>
+        </div>
+
+        <!-- VO2 Max（有则显示） -->
+        <div class="card">
+          <h3>心肺适应 <span class="muted">VO₂ Max</span></h3>
+          <div style="display:flex;align-items:baseline;gap:8px;">
+            <div style="font-size:32px;font-weight:800;color:var(--green)">42.6</div>
+            <div class="muted">mL/kg·min · 高于同龄平均</div>
+          </div>
+          <div class="muted" style="font-size:12px;margin-top:8px;line-height:1.5;">来自 Apple Watch 心肺适能估算。无数据时整卡隐藏。</div>
+        </div>
+
+        <!-- 精简档案 -->
+        <div class="card">
+          <h3>个人档案 <span class="muted">基础信息</span></h3>
+          <div class="kv"><span>年龄</span><b>29 岁</b></div>
+          <div class="kv"><span>生理性别</span><b>男</b></div>
+          <div class="kv"><span>身高</span><b>175.0 cm</b></div>
+        </div>
+
+        <!-- 本地提示 -->
+        <div class="card">
+          <h3>身体提示</h3>
+          <div class="tip">
+            <div class="ti" style="background:rgba(52,199,89,.15);color:var(--green)">&#10003;</div>
+            <div><div class="tt">体成分处于健康区间</div><div class="td">BMI 22.3、体脂 16.8%（男性参考适中），继续保持有氧 + 力量结合。</div></div>
+          </div>
+          <div class="tip">
+            <div class="ti" style="background:rgba(10,132,255,.16);color:var(--blue)">&#128200;</div>
+            <div><div class="tt">近30天体重稳步下降</div><div class="td">累计 −0.8 kg，节奏健康；避免过快减重影响恢复。</div></div>
+          </div>
+        </div>
+
+        <div class="muted" style="font-size:11px;line-height:1.5;padding:0 4px 8px;">身体数据来自 Apple 健康，仅供运动参考，不构成医疗诊断。请在健康 App 或设备中维护身高、体重、体脂等信息。</div>
+      </div>
+
+      <!-- ============ 建议 ============ -->
+      <div class="page" id="page-ai">
+        <div class="navbar"><h1>建议</h1></div>
+
+        <!-- 1. 上周周报（唯一主卡，紧凑摘要） -->
+        <div class="week-review" id="weekReviewCard">
+          <div class="wr-head">
+            <div>
+              <h3>上周周报</h3>
+              <div class="sub" id="weekRangeLabel">7月21日 – 7月27日</div>
+            </div>
+            <div class="link-hist" onclick="openWeekHistory()">历史</div>
+          </div>
+          <div id="weekReviewBody"></div>
+          <button class="btn-primary" id="btnWeekGen" onclick="genWeeklyReview()">生成上周周报</button>
+          <div class="muted" style="font-size:11px;margin-top:8px;line-height:1.45;" id="weekHint"></div>
+        </div>
+
+        <!-- 2. 今日提示 -->
+        <div class="card">
+          <h3>今日提示</h3>
+          <div class="tip">
+            <div class="ic" style="background:rgba(255,159,10,.15);color:var(--orange)">&#9889;</div>
+            <div><div class="ct">活动能量接近目标</div><div class="cd">再补一点轻松有氧即可达标。</div></div>
+          </div>
+          <div class="tip">
+            <div class="ic" style="background:rgba(52,199,89,.15);color:var(--green)">&#128164;</div>
+            <div><div class="ct">昨夜睡眠尚可</div><div class="cd">今日适合保持中等强度。</div></div>
+          </div>
+        </div>
+
+        <!-- 3. 近况建议（普通卡） -->
+        <div class="card">
+          <h3>&#10024; 近况建议</h3>
+          <p class="muted" style="font-size:13px;margin:0 0 10px;line-height:1.45;">基于近 7 / 30 天活动，随时问一版可执行建议。</p>
+          <button class="btn-secondary" style="margin-top:0" onclick="genAI()">生成近况建议</button>
+        </div>
+        <div id="ai-output"></div>
+      </div>
+
+      <!-- ============ 睡眠 ============ -->
+      <div class="page" id="page-sleep">
+        <div class="navbar"><h1>睡眠</h1></div>
+
+        <!-- 昨夜：评分 + 时长 + 一句话结论 + vs 平常 -->
+        <div class="card">
+          <div class="sleep-hero">
+            <div class="ring">
+              <svg width="120" height="120">
+                <circle cx="60" cy="60" r="52" stroke="rgba(94,92,230,.15)" stroke-width="12" fill="none"/>
+                <circle cx="60" cy="60" r="52" stroke="#5e5ce6" stroke-width="12" fill="none"
+                  stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="59"/>
+              </svg>
+              <div class="val"><b>82</b><span>睡眠评分</span></div>
+            </div>
+            <div class="info">
+              <div class="big">7<small>时</small>18<small>分</small></div>
+              <div class="sub">深睡 1时32分 · 效率 94%</div>
+              <div class="rng">&#127769; <b>23:42</b> 入睡 &nbsp;·&nbsp; &#9728; <b>07:00</b> 起床</div>
+            </div>
+          </div>
+          <div class="sleep-verdict" id="sleepVerdict">
+            昨夜比平常<strong>早睡 18 分钟</strong>，时长多 <b>12 分钟</b>；深睡占比 21%，略低于理想 23%，今天训练可保持轻松强度。
+          </div>
+          <div class="sleep-vs" id="sleepVs"></div>
+          <!-- 午睡（有则显示） -->
+          <div class="nap-chip" id="sleepNap">
+            <div class="ic">&#128164;</div>
+            <div>
+              <div class="tt">另有午睡 42 分钟</div>
+              <div class="td">18:05 – 18:47 · 不计入上方「昨夜」主睡眠</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 分期时间轴 + 阶段占比 -->
+        <div class="card">
+          <h3>睡眠阶段 <span class="muted">昨夜时间轴</span></h3>
+          <div class="hypno-wrap">
+            <div class="hypno" id="sleepHypno">
+              <div class="ylabels"><span>清醒</span><span>REM</span><span>核心</span><span>深睡</span></div>
+              <div class="lane l0"></div><div class="lane l1"></div><div class="lane l2"></div><div class="lane l3"></div>
+              <div class="plot" id="sleepHypnoPlot"></div>
+            </div>
+            <div class="hypno-axis"><span>23:42</span><span>01:30</span><span>04:00</span><span>07:00</span></div>
+          </div>
+          <div class="stage-bar" id="sleepStageBar"></div>
+          <div class="stage-legend" id="sleepStageLegend"></div>
+        </div>
+
+        <!-- 夜间生命体征：呼吸频率 / 血氧 / 腕温 -->
+        <div class="card">
+          <h3>夜间生命体征 <span class="muted">昨夜睡眠期间</span></h3>
+          <div class="vitals" id="sleepVitals">
+            <div class="vital">
+              <div class="ic">&#128168;</div>
+              <div class="vv">14.2<small>次/分</small></div>
+              <div class="lb">呼吸频率</div>
+              <div class="hint">均值 · 正常</div>
+            </div>
+            <div class="vital">
+              <div class="ic">&#128155;</div>
+              <div class="vv">97<small>%</small></div>
+              <div class="lb">血氧饱和度</div>
+              <div class="hint">均值 · 正常</div>
+            </div>
+            <div class="vital">
+              <div class="ic">&#127777;&#65039;</div>
+              <div class="vv">+0.15<small>°C</small></div>
+              <div class="lb">腕温变化</div>
+              <div class="hint">相对基线</div>
+            </div>
+          </div>
+          <div class="vitals-note">需 Apple Watch 睡眠时佩戴并授权相关健康数据。整卡仅在至少一项有数据时显示；缺数的格为「暂无」。腕温为相对基线偏差（非绝对体温）。不构成医疗诊断。</div>
+        </div>
+
+        <!-- 趋势：多指标切换 -->
+        <div class="card">
+          <h3>近 7 晚趋势 <span class="muted" id="sleepTrendAvg">日均 7.1 小时</span></h3>
+          <div class="seg" id="sleepTrendSeg">
+            <button class="active" data-m="hours" onclick="switchSleepTrend(this,'hours')">时长</button>
+            <button data-m="deep" onclick="switchSleepTrend(this,'deep')">深睡</button>
+            <button data-m="eff" onclick="switchSleepTrend(this,'eff')">效率</button>
+            <button data-m="score" onclick="switchSleepTrend(this,'score')">评分</button>
+          </div>
+          <div class="chart-wrap" style="height:170px"><canvas id="sleepTrendChart"></canvas></div>
+        </div>
+
+        <!-- 作息规律 -->
+        <div class="card">
+          <h3>作息规律 <span class="muted">规律性 86/100</span></h3>
+          <p class="sched-hint">每条横条表示当晚主睡眠时段。条越整齐对齐，说明近几天入睡/起床越稳定。规律性按入睡时间波动计算：波动越小分越高。</p>
+          <div id="sleepSchedule"></div>
+          <div class="sched-axis"><span>21:00</span><span>01:00</span><span>05:00</span><span>09:00</span></div>
+          <div class="tip" style="margin-top:6px">
+            <div class="ti" style="background:rgba(94,92,230,.18);color:#7d7bff">&#128337;</div>
+            <div><div class="tt">入睡时间较规律</div><div class="td">近 7 晚平均 23:38 入睡，波动 ±34 分钟；周末较平日晚睡约 40 分钟。</div></div>
+          </div>
+        </div>
+
+        <!-- 与运动 · 心率关联 -->
+        <div class="card">
+          <h3>睡眠 &amp; 恢复关联</h3>
+          <div class="corr">
+            <div class="ci" style="background:rgba(52,199,89,.16);color:var(--green)">&#127939;</div>
+            <div><div class="ct">运动日睡得更深</div><div class="cd">有运动的夜晚深睡平均 1 小时 32 分，比无运动日多 22 分钟，入睡也更快。</div></div>
+          </div>
+          <div class="corr">
+            <div class="ci" style="background:rgba(255,69,58,.16);color:var(--red)">&#10084;</div>
+            <div><div class="ct">睡眠充足 → 静息心率更低</div><div class="cd">睡满 7 小时以上的次日，静息心率平均 56 次/分，比睡眠不足日低 4 次/分。</div></div>
+          </div>
+          <div class="corr">
+            <div class="ci" style="background:rgba(10,132,255,.16);color:var(--blue)">&#128200;</div>
+            <div><div class="ct">HRV 与睡眠时长正相关</div><div class="cd">睡眠时长每增加 1 小时，HRV 平均提升约 5 ms，恢复能力更好。</div></div>
+          </div>
+          <div class="corr">
+            <div class="ci" style="background:rgba(255,143,51,.16);color:var(--accent)">&#128161;</div>
+            <div><div class="ct">睡前运动提醒</div><div class="cd">昨夜入睡前 3 小时内无高强度训练。若晚间加练，建议结束在入睡前 3 小时以上。</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ 运动详情（无 Tab，从列表进入） ============ -->
+      <div class="page" id="page-detail">
+        <div class="navbar" style="padding-bottom:8px;">
+          <button class="detail-back" onclick="backToWorkouts()">&#8249; 运动记录</button>
+          <button class="icon-btn" title="分享预览" onclick="openSharePreview()" style="font-size:15px;">&#8599;</button>
+        </div>
+        <div id="detailBody"></div>
+      </div>
+
+      <!-- ============ 分享海报预览（模板对比） ============ -->
+      <div class="page" id="page-share">
+        <div class="navbar" style="padding-bottom:8px;">
+          <button class="detail-back" onclick="backFromShare()">&#8249; 返回</button>
+          <h1 style="font-size:18px;margin:0;">分享海报</h1>
+          <span style="width:38px;"></span>
+        </div>
+        <div class="share-hint">按场景自动选：有轨迹→轨迹海报 · 无轨迹→极简大字 · 列表汇总→次数汇总（下方可切换预览）</div>
+        <div class="seg" id="shareTplSeg" style="margin-top:12px;">
+          <button class="active" onclick="switchShareTpl(this,'route')">轨迹海报</button>
+          <button onclick="switchShareTpl(this,'minimal')">极简大字</button>
+          <button onclick="switchShareTpl(this,'week')">次数汇总</button>
+        </div>
+        <div class="share-stage">
+          <div class="poster-wrap" id="sharePoster"></div>
+          <div class="share-old-label">↓ 对比：当前正式版风格（偏报表）</div>
+          <div class="poster-wrap share-old" id="shareOld"></div>
+        </div>
+      </div>
+
+    </div><!-- content -->
+
+    <!-- 上周建议 · 完整周报 / 历史 -->
+    <div class="sheet-mask" id="weekSheet" onclick="if(event.target===this)closeWeekSheet()">
+      <div class="sheet" style="max-height:88%;" onclick="event.stopPropagation()">
+        <div class="grab"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <h2 id="weekSheetTitle" style="margin:0;">上周周报</h2>
+          <button class="btn-ghost" style="width:auto;margin:0;padding:8px 12px;" onclick="closeWeekSheet()">关闭</button>
+        </div>
+        <div id="weekSheetBody"></div>
+      </div>
+    </div>
+
+    <!-- 设置弹层 -->
+    <div class="sheet-mask" id="sheet">
+      <div class="sheet">
+        <div class="grab"></div>
+        <h2>设置</h2>
+        <div class="field"><label>每日活动能量目标 (kcal)</label><input value="400"></div>
+        <div style="height:1px;background:var(--line);margin:10px 0 6px"></div>
+        <div class="muted" style="margin-bottom:8px">大模型接口（OpenAI 兼容）</div>
+        <div class="field"><label>Base URL</label><input value="https://api.openai.com/v1"></div>
+        <div class="field"><label>模型</label><input value="gpt-4o-mini"></div>
+        <div class="field"><label>API Key（存于本机 Keychain）</label><input type="password" value="sk-••••••••••••"></div>
+        <div class="row-set"><span>健康数据已授权</span><div class="switch"></div></div>
+        <button class="btn-primary" onclick="closeSheet()">完成</button>
+      </div>
+    </div>
+
+    <!-- Tab -->
+    <div class="tabbar">
+      <button class="tab active" data-p="home" onclick="go(this,'home')"><span class="ic">&#127968;</span>概览</button>
+      <button class="tab" data-p="workouts" onclick="go(this,'workouts')"><span class="ic">&#127939;</span>运动</button>
+      <button class="tab" data-p="sleep" onclick="go(this,'sleep')"><span class="ic">&#128564;</span>睡眠</button>
+      <button class="tab" data-p="body" onclick="go(this,'body')"><span class="ic">&#128100;</span>身体</button>
+      <button class="tab" data-p="ai" onclick="go(this,'ai')"><span class="ic">&#10024;</span>建议</button>
+    </div>
+
+  </div><!-- screen -->
+</div><!-- phone -->
+
+<script>
+let chartsReady=false, sleepReady=false, bodyReady=false;
+function go(btn,page){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  if(page==='sleep' && !sleepReady){ setTimeout(drawSleep,50); sleepReady=true; }
+  if(page==='body' && !bodyReady){ setTimeout(drawBody,50); bodyReady=true; }
+  document.querySelector('.content').scrollTop=0;
+}
+// 从概览小卡跳睡眠页
+function goSleep(){
+  const tab=document.querySelector('.tab[data-p="sleep"]');
+  go(tab,'sleep');
+}
+function openSheet(){document.getElementById('sheet').classList.add('show');}
+function closeSheet(){document.getElementById('sheet').classList.remove('show');}
+function switchRange(btn,r){
+  btn.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+/* ===== 运动记录：时间范围联动 ===== */
+// 模拟数据：以「今天 = 2026/7/31」为基准，覆盖近一年
+const TODAY = new Date(2026,6,31);
+const ICONS = {跑步:['\u{1F3C3}','rgba(255,159,10,.16)','#ff9f0a'],骑行:['\u{1F6B4}','rgba(52,199,89,.16)','#34c759'],
+  力量训练:['\u{1F3CB}','rgba(191,90,242,.16)','#bf5af2'],游泳:['\u{1F3CA}','rgba(255,214,10,.16)','#ffd60a'],
+  健走:['\u{1F6B6}','rgba(10,132,255,.16)','#0a84ff'],瑜伽:['\u{1F9D8}','rgba(255,55,95,.16)','#ff375f']};
+// 每条记录：{off:距今天数, type, min:分钟, kcal, km:距离(0=无), t:开始时间,
+//            avgHR, maxHR, gps:是否有轨迹, climb:爬升m}
+const WORKOUTS = [
+  {off:0,type:'跑步',min:32,kcal:412,km:5.4,t:'07:12',avgHR:148,maxHR:172,gps:true,climb:38},
+  {off:0,type:'健走',min:22,kcal:96,km:1.9,t:'12:40',avgHR:104,maxHR:118,gps:true,climb:6},
+  {off:1,type:'力量训练',min:45,kcal:286,km:0,t:'19:40',avgHR:126,maxHR:158,gps:false,climb:0},
+  {off:2,type:'骑行',min:55,kcal:498,km:18.2,t:'18:05',avgHR:132,maxHR:160,gps:true,climb:145},
+  {off:3,type:'跑步',min:28,kcal:356,km:4.6,t:'06:50',avgHR:150,maxHR:174,gps:true,climb:30},
+  {off:4,type:'游泳',min:40,kcal:308,km:1.5,t:'20:10',avgHR:128,maxHR:150,gps:false,climb:0},
+  {off:6,type:'健走',min:50,kcal:190,km:4.1,t:'08:30',avgHR:108,maxHR:124,gps:true,climb:22},
+  {off:8,type:'力量训练',min:42,kcal:270,km:0,t:'19:20',avgHR:124,maxHR:155,gps:false,climb:0},
+  {off:10,type:'跑步',min:35,kcal:440,km:6.0,t:'07:00',avgHR:152,maxHR:178,gps:true,climb:42},
+  {off:12,type:'瑜伽',min:60,kcal:150,km:0,t:'21:00',avgHR:92,maxHR:110,gps:false,climb:0},
+  {off:15,type:'骑行',min:70,kcal:610,km:24.0,t:'17:30',avgHR:135,maxHR:165,gps:true,climb:210},
+  {off:18,type:'跑步',min:30,kcal:378,km:5.0,t:'06:45',avgHR:149,maxHR:170,gps:true,climb:28},
+  {off:22,type:'游泳',min:45,kcal:340,km:1.8,t:'20:00',avgHR:130,maxHR:152,gps:false,climb:0},
+  {off:26,type:'力量训练',min:48,kcal:300,km:0,t:'19:10',avgHR:127,maxHR:160,gps:false,climb:0},
+  {off:40,type:'跑步',min:33,kcal:420,km:5.5,t:'07:05',avgHR:151,maxHR:175,gps:true,climb:35},
+  {off:55,type:'骑行',min:80,kcal:700,km:28.0,t:'16:40',avgHR:138,maxHR:168,gps:true,climb:260},
+  {off:75,type:'跑步',min:38,kcal:470,km:6.4,t:'06:55',avgHR:153,maxHR:180,gps:true,climb:48},
+  {off:110,type:'游泳',min:50,kcal:380,km:2.0,t:'19:50',avgHR:131,maxHR:154,gps:false,climb:0},
+  {off:160,type:'力量训练',min:44,kcal:280,km:0,t:'18:50',avgHR:125,maxHR:157,gps:false,climb:0},
+  {off:210,type:'跑步',min:31,kcal:395,km:5.2,t:'07:10',avgHR:150,maxHR:173,gps:true,climb:33},
+  {off:300,type:'骑行',min:65,kcal:560,km:21.0,t:'17:00',avgHR:134,maxHR:162,gps:true,climb:180},
+  {off:340,type:'健走',min:55,kcal:205,km:4.5,t:'08:15',avgHR:106,maxHR:120,gps:true,climb:18}
+];
+const MONTHS=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+function dateFromOffset(off){const d=new Date(TODAY);d.setDate(d.getDate()-off);return d;}
+function fmtMD(d){return (d.getMonth()+1)+'月'+d.getDate()+'日';}
+function fmtYMD(d){return d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate();}
+function toISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function icon(type){return ICONS[type]||['\u{1F3C3}','rgba(255,159,10,.16)','#ff9f0a'];}
+// 配速文本（分钟/公里）
+function paceText(min,km){if(!km)return '—';const p=min/km;const m=Math.floor(p);const s=Math.round((p-m)*60);return m+"'"+String(s).padStart(2,'0')+'"/km';}
+// 为记录建立索引，供详情页查找
+const WK_INDEXED = WORKOUTS.map((w,i)=>({...w,id:i,d:dateFromOffset(w.off)}));
+
+function recordsInRange(startDate,endDate){
+  return WK_INDEXED.filter(x=>x.d>=startDate && x.d<=endDate).sort((a,b)=>b.d-a.d);
+}
+
+/* ---- 首页：今日运动 ---- */
+function renderTodayWorkouts(){
+  const s=dateFromOffset(0), e=new Date(TODAY); e.setHours(23,59,59);
+  const list=WK_INDEXED.filter(x=>x.off===0).sort((a,b)=>a.t<b.t?-1:1);
+  const box=document.getElementById('todayWkList');
+  const sum=document.getElementById('todayWkSummary');
+  if(!list.length){box.innerHTML='<div class="empty-line">今天还没有运动记录，去动一动吧 &#127939;</div>';sum.textContent='';return;}
+  const kcal=list.reduce((s,x)=>s+x.kcal,0), min=list.reduce((s,x)=>s+x.min,0);
+  sum.textContent=list.length+' 次 · '+min+' 分钟 · '+kcal+' kcal';
+  box.innerHTML=list.map(x=>{
+    const ic=icon(x.type);const dist=x.km>0?' · '+x.km+' km':'';
+    return `<div class="today-wk" onclick="openDetail(${x.id})">`
+      +`<div class="twi" style="background:${ic[1]}">${ic[0]}</div>`
+      +`<div><div class="twt">${x.type}</div><div class="tws">${x.t} 开始 · ${x.min} 分钟${dist}</div></div>`
+      +`<div class="twk"><b>${x.kcal}</b><br><span>kcal</span></div><span class="chev">&#8250;</span></div>`;
+  }).join('');
+}
+
+/* ---- 运动页：类型过滤 + 列表 ---- */
+let wkSelectedType=null;
+let wkRangeList=[];
+let wkRangeLabel='近7天';
+let wkPeriodText='';
+
+function renderTypeStats(list){
+  const box=document.getElementById('wkTypeStats');
+  const hint=document.getElementById('wkTypeHint');
+  const map={};
+  list.forEach(x=>{ if(!map[x.type])map[x.type]={cnt:0,min:0,kcal:0,km:0};
+    const m=map[x.type];m.cnt++;m.min+=x.min;m.kcal+=x.kcal;m.km+=x.km;});
+  const types=Object.keys(map).sort((a,b)=>map[b].cnt-map[a].cnt);
+  if(!types.length){
+    box.innerHTML='<div class="muted" style="padding:4px 4px 8px;">—</div>';
+    hint.style.display='none';
+    return;
+  }
+  box.innerHTML=types.map(t=>{
+    const ic=icon(t),m=map[t];
+    const sel=wkSelectedType===t?' selected':'';
+    const extra=(t==='游泳'&&m.km>0)?(Math.round(m.km*1000)+' m')
+      :(m.km>0?(m.km.toFixed(1)+' km'):(m.min+' 分钟'));
+    const border=wkSelectedType===t?ic[2]||'var(--accent)':'';
+    return `<div class="type-card${sel}" style="${border?'border-color:'+border:''}" onclick="toggleWkTypeFilter('${t}')">`
+      +`<div class="th"><span class="dot" style="background:${ic[1]}">${ic[0]}</span>${t}</div>`
+      +`<div class="tn">${m.cnt}<small> 次</small></div>`
+      +`<div class="tsub">${m.kcal.toLocaleString()} kcal · ${extra}</div></div>`;
+  }).join('');
+  hint.style.display=wkSelectedType? 'none':'block';
+}
+
+function toggleWkTypeFilter(type){
+  wkSelectedType=(wkSelectedType===type)?null:type;
+  renderWkList();
+  renderTypeStats(wkRangeList);
+  renderWkFilterBar();
+}
+
+function clearWkTypeFilter(){
+  wkSelectedType=null;
+  renderWkList();
+  renderTypeStats(wkRangeList);
+  renderWkFilterBar();
+}
+
+function renderWkFilterBar(){
+  const bar=document.getElementById('wkFilterBar');
+  if(!wkSelectedType){bar.style.display='none';bar.innerHTML='';return;}
+  const n=wkRangeList.filter(x=>x.type===wkSelectedType).length;
+  const ic=icon(wkSelectedType);
+  bar.style.display='flex';
+  bar.innerHTML=`<span class="dot" style="width:22px;height:22px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;background:${ic[1]}">${ic[0]}</span>`
+    +`<span>已筛选：${wkSelectedType} · ${n} 次</span>`
+    +`<button class="clr" onclick="clearWkTypeFilter()">清除 ✕</button>`;
+}
+
+function renderWkList(){
+  const box=document.getElementById('wkList');
+  const list=wkSelectedType?wkRangeList.filter(x=>x.type===wkSelectedType):wkRangeList;
+  if(!list.length){
+    box.innerHTML=wkSelectedType
+      ?'<div class="wk-empty">该时间段没有这类运动<br><span class="muted" style="font-size:12px">点上方「清除」查看所有运动</span></div>'
+      :'<div class="wk-empty">该时间段暂无运动记录</div>';
+    return;
+  }
+  box.innerHTML=list.map(x=>{
+    const ic=icon(x.type);
+    let dist='';
+    if(x.type==='游泳'&&x.km>0) dist=' · '+Math.round(x.km*1000)+' m';
+    else if(x.km>0) dist=' · '+x.km+' km';
+    return `<div class="wk clickable" onclick="openDetail(${x.id})"><div class="wi" style="background:${ic[1]}">${ic[0]}</div>`
+      +`<div><div class="wtitle">${x.type}</div><div class="wsub">${fmtMD(x.d)} ${x.t} · ${x.min} 分钟${dist}</div></div>`
+      +`<div class="wcal"><b>${x.kcal}</b><br><span>kcal</span></div><span class="chev">&#8250;</span></div>`;
+  }).join('');
+}
+
+function renderWk(startDate,endDate,label){
+  wkRangeLabel=label;
+  wkPeriodText=fmtYMD(startDate)+' – '+fmtYMD(endDate);
+  const list=recordsInRange(startDate,endDate);
+  wkRangeList=list;
+  // 切范围时清除类型过滤（与正式版一致）
+  wkSelectedType=null;
+  const cnt=list.length, min=list.reduce((s,x)=>s+x.min,0), kcal=list.reduce((s,x)=>s+x.kcal,0);
+  document.getElementById('wkCount').textContent=cnt;
+  document.getElementById('wkMin').textContent=min.toLocaleString();
+  document.getElementById('wkKcal').textContent=kcal.toLocaleString();
+  document.getElementById('wkCountLbl').textContent=label+'次数';
+  document.getElementById('wkRangeHint').textContent=wkPeriodText;
+  renderTypeStats(list);
+  renderWkFilterBar();
+  renderWkList();
+}
+function switchWkRange(btn,r){
+  btn.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const card=document.getElementById('wkDateCard');
+  if(r==='c'){card.style.display='block';return;}
+  card.style.display='none';
+  let start,label;
+  if(r==='w'){start=dateFromOffset(6);label='近7天';}
+  else if(r==='m'){start=dateFromOffset(29);label='近1个月';}
+  else{start=dateFromOffset(364);label='近1年';}
+  renderWk(start,TODAY,label);
+}
+function applyWkDate(){
+  const s=document.getElementById('wkStart').value, e=document.getElementById('wkEnd').value;
+  if(!s||!e){alert('请选择开始和结束日期');return;}
+  let sd=new Date(s+'T00:00:00'), ed=new Date(e+'T23:59:59');
+  if(sd>ed){const t=sd;sd=ed;ed=t;}
+  renderWk(sd,ed,'自定义');
+}
+function openShareFromWorkouts(){
+  if(!wkRangeList.length){alert('该时间段暂无运动，无法分享');return;}
+  shareFromWorkouts=true;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-share').classList.add('active');
+  document.querySelector('.content').scrollTop=0;
+  const seg=document.getElementById('shareTplSeg');
+  seg.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active',i===2));
+  shareTpl='week';
+  renderSharePosters();
+}
+// 初始化：默认近7天 + 自定义日期框默认值 + 首页今日运动
+(function initWk(){
+  document.getElementById('wkStart').value=toISO(dateFromOffset(6));
+  document.getElementById('wkEnd').value=toISO(TODAY);
+  renderWk(dateFromOffset(6),TODAY,'近7天');
+  renderTodayWorkouts();
+  // 趋势图默认折叠，首次展开时再绘制（避免 hidden canvas 尺寸为 0）
+  // 支持 URL hash 直接定位页面（如 #sleep / #ai），便于分享与截图
+  const h=location.hash.replace('#','');
+  if(h && h!=='share'){const tab=document.querySelector('.tab[data-p="'+h+'"]');if(tab)go(tab,h);}
+  renderWeekReview(false);
+})();
+
+function toggleTrends(ev){
+  if(ev) ev.stopPropagation();
+  const panel=document.getElementById('trendPanel');
+  const open=panel.classList.toggle('show');
+  document.getElementById('trendToggleLabel').textContent=open?'收起趋势图表':'查看趋势图表';
+  document.getElementById('trendToggleChev').innerHTML=open?'&#9650;':'&#9660;';
+  if(open && !chartsReady){
+    setTimeout(()=>{ drawCharts(); chartsReady=true; },60);
+  } else if(open && chartsReady){
+    // 展开后触发一次 resize，避免 Chart.js 在隐藏态初始化后尺寸异常
+    setTimeout(()=>window.dispatchEvent(new Event('resize')),60);
+  }
+}
+
+/* ===== 运动详情页 ===== */
+let detailFromTab='workouts'; // 记录从哪个 Tab 进入，返回时用
+function openDetail(id){
+  shareWorkoutId=id;
+  const active=document.querySelector('.tab.active');
+  detailFromTab=active?active.dataset.p:'workouts';
+  const x=WK_INDEXED[id];
+  let html = (x.type==='游泳') ? swimDetailHTML(x,id) : genericDetailHTML(x,id);
+  document.getElementById('detailBody').innerHTML=html;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-detail').classList.add('active');
+  document.querySelector('.content').scrollTop=0;
+}
+function genericDetailHTML(x,id){
+  const ic=icon(x.type);
+  let metrics=`<div class="metric-grid">
+    <div class="mc"><b>${x.kcal}</b><small>kcal</small><span>消耗</span></div>
+    <div class="mc"><b>${x.min}</b><small>分钟</small><span>时长</span></div>
+    <div class="mc"><b>${x.avgHR}</b><small>bpm</small><span>平均心率</span></div>`;
+  if(x.km>0){
+    metrics+=`<div class="mc"><b>${x.km}</b><small>km</small><span>距离</span></div>
+      <div class="mc"><b>${paceText(x.min,x.km)}</b><span>平均配速</span></div>
+      <div class="mc"><b>${x.climb}</b><small>m</small><span>累计爬升</span></div>`;
+  }else{
+    metrics+=`<div class="mc"><b>${x.maxHR}</b><small>bpm</small><span>最高心率</span></div>
+      <div class="mc"><b>${Math.round(x.kcal/x.min)}</b><small>kcal/min</small><span>强度</span></div>
+      <div class="mc"><b>${x.maxHR-x.avgHR}</b><small>bpm</small><span>心率波动</span></div>`;
+  }
+  metrics+=`</div>`;
+  let html=`<div class="detail-hero">
+    <div class="dtype"><span class="di" style="background:${ic[1]}">${ic[0]}</span>${x.type}</div>
+    <div class="ddate">${x.d.getFullYear()}年${fmtMD(x.d)} ${x.t} 开始</div>
+  </div>${metrics}`;
+  if(x.gps && x.km>0){
+    html+=`<div class="card"><h3>运动轨迹 <span class="muted">${x.km} km</span></h3>${trackMapSVG(id,x)}</div>`;
+    html+=`<div class="card"><h3>分段配速 <span class="muted">每公里</span></h3>${splitsHTML(x)}</div>`;
+  }
+  html+=`<div class="card"><h3>心率曲线 <span class="muted">平均 ${x.avgHR} · 峰值 ${x.maxHR}</span></h3>${hrCurveSVG(x)}
+    ${hrZonesHTML(x)}</div>`;
+  return html;
+}
+function hrZonesHTML(x){
+  // 五段式（对齐系统健身 / 参考图）：区间名 + 条 + 时长 + BPM 范围
+  const maxHR=Math.max(x.maxHR||190,170);
+  const edges=[0.6,0.7,0.8,0.9].map(r=>Math.round(maxHR*r));
+  const zones=[
+    {i:1,n:'热身',c:'#5ac8fa',p:2,t:'00:42',r:'<'+edges[0]+' 次/分'},
+    {i:2,n:'燃脂',c:'#64d2ff',p:10,t:'03:16',r:edges[0]+'–'+(edges[1]-1)+' 次/分'},
+    {i:3,n:'有氧耐力',c:'#34c759',p:40,t:'18:22',r:edges[1]+'–'+(edges[2]-1)+' 次/分'},
+    {i:4,n:'无氧耐力',c:'#ff9f0a',p:30,t:'14:31',r:edges[2]+'–'+(edges[3]-1)+' 次/分'},
+    {i:5,n:'极限',c:'#ff375f',p:18,t:'12:08',r:edges[3]+'+ 次/分'}
+  ];
+  const rows=zones.map(z=>`<div style="margin-top:12px">
+    <div style="display:flex;align-items:baseline;gap:8px;font-size:13px">
+      <b style="color:${z.c}">区间 ${z.i}</b>
+      <span class="muted" style="font-size:11px">${z.n}</span>
+      <span style="margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums">${z.t}</span>
+      <span class="muted" style="width:96px;text-align:right;font-size:11px">${z.r}</span>
+    </div>
+    <div style="margin-top:6px;height:8px;background:var(--panel2);border-radius:4px;overflow:hidden">
+      <i style="display:block;height:100%;width:${Math.max(z.p,2)}%;background:${z.c};border-radius:4px"></i>
+    </div>
+  </div>`).join('');
+  return `<div style="margin-top:14px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:2px">心率区间</div>
+    ${rows}
+    <div class="muted" style="font-size:11px;margin-top:10px">每个心率区间的估计时间</div>
+  </div>`;
+}
+function swimDetailHTML(x){
+  const meters=Math.round(x.km*1000);
+  const pool=50;
+  const laps=Math.max(1,Math.round(meters/pool));
+  const pace100=paceText(x.min, x.km*10); // min per 100m ≈ min/(km*10)
+  const avgLapSec=(x.min*60)/laps;
+  const strokesPerLap=18;
+  const swolf=Math.round(avgLapSec+strokesPerLap);
+  // 模拟趟次（混泳姿）
+  const styles=[{n:'自由泳',c:'#64d2ff'},{n:'蛙泳',c:'#34c759'},{n:'仰泳',c:'#0a84ff'},{n:'蝶泳',c:'#ff9f0a'}];
+  let seed=x.id*11+3;const rnd=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
+  const lapRows=[];
+  let t=0;
+  for(let i=0;i<Math.min(laps,12);i++){
+    const st=styles[i%styles.length];
+    const sec=avgLapSec*(0.9+rnd()*0.2);
+    const p=sec/60; // min/100m for 50m pool roughly scale
+    const pm=Math.floor(p*2), ps=Math.round(((p*2)-pm)*60);
+    lapRows.push({i:i+1,st,sec,pace:pm+"'"+String(ps).padStart(2,'0')+'"'});
+    t+=sec;
+  }
+  const sets=[{g:'1–4',m:200,t:'4:12',p:"2'06\""},{g:'5–8',m:200,t:'4:05',p:"2'02\""},{g:'9–12',m:200,t:'4:18',p:"2'09\""}];
+  let html=`<div class="card" style="background:linear-gradient(160deg,rgba(100,210,255,.16),var(--panel));">
+    <div class="muted" style="margin-bottom:8px">${x.d.getFullYear()}年${fmtMD(x.d)} · ${x.t}</div>
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+      <div>
+        <div style="font-size:44px;font-weight:800;color:#64d2ff;letter-spacing:-1px;line-height:1">${meters}<small style="font-size:18px;margin-left:4px">m</small></div>
+        <div class="muted" style="margin-top:8px;font-size:12px">${pool}m 泳池 · ${laps} 趟</div>
+      </div>
+      <div style="display:flex;gap:6px">${styles.map(s=>`<span style="width:10px;height:10px;border-radius:50%;background:${s.c}"></span>`).join('')}</div>
+    </div>
+  </div>`;
+  html+=`<div class="metric-grid">
+    <div class="mc"><b>${String(Math.floor(x.min/60))+':'+String(x.min%60).padStart(2,'0')}</b><span>总时长</span></div>
+    <div class="mc"><b>${pace100.replace('/km','')}</b><small>/100m</small><span>平均配速</span></div>
+    <div class="mc"><b>${x.avgHR}</b><small>bpm</small><span>平均心率</span></div>
+    <div class="mc"><b>${x.kcal}</b><small>kcal</small><span>消耗</span></div>
+    <div class="mc"><b>${swolf}</b><span>平均 SWOLF</span></div>
+    <div class="mc"><b>${strokesPerLap}</b><small>次</small><span>均划次/趟</span></div>
+    <div class="mc"><b>${x.maxHR}</b><small>bpm</small><span>最高心率</span></div>
+    <div class="mc"><b>${laps}</b><small>趟</small><span>趟数</span></div>
+    <div class="mc"><b>${Math.round(strokesPerLap*laps)}</b><small>次</small><span>总划次</span></div>
+  </div>`;
+  html+=`<div class="card"><h3>分段</h3>
+    ${lapRows.map(r=>`<div class="split-row"><span style="width:28px;color:var(--sub)">${r.i}</span>
+      <span style="width:40px">${pool}m</span>
+      <div class="sp-bar"><i style="width:${40+r.i*4}%;background:${r.st.c}"></i></div>
+      <b style="width:48px;text-align:right">${r.pace}</b>
+      <span style="width:44px;text-align:right;color:${r.st.c};font-size:11px;font-weight:700">${r.st.n}</span></div>`).join('')}
+  </div>`;
+  html+=`<div class="card"><h3>自动组合</h3>
+    ${sets.map((s,i)=>`<div class="kv"><span>第 ${i+1} 组 · 趟 ${s.g}</span><b>${s.m}m · ${s.t} · ${s.p}</b></div>`).join('')}
+  </div>`;
+  html+=`<div class="card"><h3>配速 <span class="muted">/100m</span></h3>
+    <div style="display:flex;align-items:flex-end;gap:4px;height:100px;margin-top:8px">
+      ${lapRows.map(r=>`<div style="flex:1;background:linear-gradient(180deg,#ff9f0a,#ff9f0a88);border-radius:4px 4px 0 0;height:${40+r.i*5}%"></div>`).join('')}
+    </div>
+  </div>`;
+  html+=`<div class="card"><h3>本场最佳分段</h3>
+    <div class="kv"><span>100 m</span><b>1:58</b></div>
+    <div class="kv"><span>200 m</span><b>4:05</b></div>
+    <div class="kv"><span>400 m</span><b>8:22</b></div>
+    <div class="muted" style="font-size:11px;margin-top:8px">由本场连续趟次累计，非历史个人纪录</div>
+  </div>`;
+  html+=`<div class="card"><h3>心率曲线 <span class="muted">平均 ${x.avgHR} · 峰值 ${x.maxHR}</span></h3>${hrCurveSVG(x)}
+    ${hrZonesHTML(x)}</div>`;
+  return html;
+}
+function backToWorkouts(){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+detailFromTab).classList.add('active');
+}
+
+/* ===== 分享海报预览 ===== */
+let shareWorkoutId=0, shareTpl='route', shareFromWorkouts=false;
+function openSharePreview(id){
+  shareFromWorkouts=false;
+  if(typeof id==='number') shareWorkoutId=id;
+  else {
+    // 从详情页进入：用当前详情记录；若无则取第一条有 GPS 的
+    const body=document.getElementById('detailBody');
+    const active=document.getElementById('page-detail').classList.contains('active');
+    if(active && WK_INDEXED[shareWorkoutId]){ /* keep */ }
+    else {
+      const gps=WK_INDEXED.find(x=>x.gps&&x.km>0);
+      shareWorkoutId=gps?gps.id:(WK_INDEXED[0]?WK_INDEXED[0].id:0);
+    }
+  }
+  // 尽量记住详情里刚打开的那条：从 detail 导航时用最近 openDetail 的 id
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-share').classList.add('active');
+  document.querySelector('.content').scrollTop=0;
+  // 重置模板 seg
+  const seg=document.getElementById('shareTplSeg');
+  seg.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active',i===0));
+  shareTpl='route';
+  renderSharePosters();
+}
+function backFromShare(){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  if(shareFromWorkouts){
+    document.getElementById('page-workouts').classList.add('active');
+  } else if(WK_INDEXED[shareWorkoutId]){
+    document.getElementById('page-detail').classList.add('active');
+  } else {
+    document.getElementById('page-workouts').classList.add('active');
+  }
+}
+function switchShareTpl(btn,tpl){
+  btn.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  shareTpl=tpl;
+  renderSharePosters();
+}
+function shareHook(x){
+  if(x.km>=8) return '一口气跑完 '+x.km+' km，配速稳住了。';
+  if(x.km>0) return '出门动一动，'+x.km+' km 刚刚好。';
+  if(x.kcal>=400) return '高强度一堂，'+x.kcal+' kcal 燃完。';
+  return '今天也没闲着，'+x.min+' 分钟到位。';
+}
+function posterMapSVG(id){
+  let seed=id*9301+49297;
+  const rnd=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
+  const W=300,H=520,pad=28;
+  const n=32;
+  let px=W*0.25, py=H*0.55, ang=rnd()*Math.PI*2;
+  const pts=[];
+  for(let i=0;i<n;i++){
+    ang+=(rnd()-0.5)*1.05;
+    px+=Math.cos(ang)*(9+rnd()*7);
+    py+=Math.sin(ang)*(8+rnd()*6);
+    px=Math.max(pad,Math.min(W-pad,px));
+    py=Math.max(pad*2,Math.min(H-pad*3,py));
+    pts.push([px,py]);
+  }
+  const path=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  let grid='';
+  for(let gx=0;gx<=W;gx+=36)grid+=`<line x1="${gx}" y1="0" x2="${gx}" y2="${H}" stroke="rgba(255,255,255,.035)"/>`;
+  for(let gy=0;gy<=H;gy+=36)grid+=`<line x1="0" y1="${gy}" x2="${W}" y2="${gy}" stroke="rgba(255,255,255,.035)"/>`;
+  const s=pts[0],e=pts[pts.length-1];
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice">
+    <defs><linearGradient id="mg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1a2838"/><stop offset="100%" stop-color="#0c1218"/></linearGradient></defs>
+    <rect width="${W}" height="${H}" fill="url(#mg)"/>
+    ${grid}
+    <path d="${path}" fill="none" stroke="#ff8f33" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>
+    <circle cx="${s[0]}" cy="${s[1]}" r="7" fill="#34c759" stroke="#fff" stroke-width="2"/>
+    <circle cx="${e[0]}" cy="${e[1]}" r="7" fill="#ff453a" stroke="#fff" stroke-width="2"/>
+  </svg>`;
+}
+function renderPosterRoute(x){
+  const dateStr=x.d.getFullYear()+'.'+String(x.d.getMonth()+1).padStart(2,'0')+'.'+String(x.d.getDate()).padStart(2,'0');
+  const hero = x.km>0
+    ? `<div class="big">${x.km}<small>km</small></div>`
+    : `<div class="big">${x.kcal}<small>kcal</small></div>`;
+  const subs = x.km>0
+    ? `<span>${paceText(x.min,x.km)}</span><span>${x.min} 分钟</span><span>${x.kcal} kcal</span>`
+    : `<span>${x.min} 分钟</span><span>均心 ${x.avgHR}</span><span>峰值 ${x.maxHR}</span>`;
+  const map = (x.gps&&x.km>0) ? posterMapSVG(x.id)
+    : `<svg viewBox="0 0 300 520"><defs><radialGradient id="rg" cx="40%" cy="30%"><stop offset="0%" stop-color="#2a1a0e"/><stop offset="100%" stop-color="#0a0e14"/></radialGradient></defs><rect width="300" height="520" fill="url(#rg)"/></svg>`;
+  return `<div class="poster-route">
+    <div class="mapbg">${map}</div><div class="veil"></div>
+    <div class="top"><span class="brand">燃知</span><span>${dateStr}</span></div>
+    <div class="hero">
+      <div class="type">${icon(x.type)[0]} ${x.type}</div>
+      ${hero}
+      <div class="subrow">${subs}</div>
+      <div class="hook">${shareHook(x)}</div>
+    </div>
+    <div class="mark">燃知</div>
+  </div>`;
+}
+function renderPosterMinimal(x){
+  const dateStr=fmtMD(x.d)+' '+x.t;
+  let big, unitInline='', sub;
+  const isSwim=x.type==='游泳';
+  if(x.km>0){
+    if(isSwim){ big=String(Math.round(x.km*1000)); unitInline=' m'; sub='距离 · '+paceText(x.min,x.km).replace('/km','/100m'); }
+    else { big=String(x.km); unitInline=' km'; sub='距离 · '+paceText(x.min,x.km); }
+  } else { big=String(x.kcal); unitInline=' kcal'; sub='活动消耗'; }
+  const pace=x.km>0?paceText(x.min,x.km).replace('/km',''):'';
+  const midStat=x.km>0
+    ?`<div><b>${pace}</b><span>${isSwim?'/100m':'/km'}</span></div>`
+    :`<div><b>${x.avgHR}</b><span>均心</span></div>`;
+  return `<div class="poster-minimal">
+    <div class="top"><span>燃知</span><span>${dateStr}</span></div>
+    <div class="mid">
+      <div class="type">${x.type}</div>
+      <div class="big">${big}<small style="font-size:18px;opacity:.55;margin-left:4px">${unitInline.trim()}</small></div>
+      <div class="unit">${sub}</div>
+      <div class="stats">
+        <div><b>${x.min}</b><span>分钟</span></div>
+        ${midStat}
+        <div><b>${x.kcal}</b><span>kcal</span></div>
+      </div>
+      <div class="hook" style="margin-top:28px">${shareHook(x)}</div>
+    </div>
+  </div>`;
+}
+function renderPosterWeek(){
+  const start=dateFromOffset(6);
+  const list=typeof wkRangeList!=='undefined'&&wkRangeList.length?wkRangeList:recordsInRange(start,TODAY);
+  const label=typeof wkRangeLabel!=='undefined'?wkRangeLabel:'近7天';
+  const period=typeof wkPeriodText!=='undefined'&&wkPeriodText?wkPeriodText:(fmtMD(start)+' – '+fmtMD(TODAY));
+  const min=list.reduce((s,x)=>s+x.min,0);
+  const kcal=list.reduce((s,x)=>s+x.kcal,0);
+  const map={};
+  list.forEach(x=>{
+    if(!map[x.type])map[x.type]={min:0,cnt:0,kcal:0,km:0};
+    const m=map[x.type];m.min+=x.min;m.cnt++;m.kcal+=x.kcal;m.km+=x.km;
+  });
+  const types=Object.keys(map).sort((a,b)=>map[b].cnt-map[a].cnt).slice(0,5);
+  const rows=types.map(t=>{
+    const ic=icon(t),m=map[t];
+    let met;
+    if(m.km>0){
+      if(t==='游泳'){
+        const meters=Math.round(m.km*1000);
+        met=meters>=10000?(m.km>=100?Math.round(m.km).toLocaleString():m.km.toFixed(1))+' km':meters.toLocaleString()+' m';
+      } else {
+        met=(m.km>=100?Math.round(m.km).toLocaleString():m.km.toFixed(1))+' km';
+      }
+    } else met=m.kcal.toLocaleString()+' kcal';
+    return `<div class="trow"><span class="di" style="background:${ic[1]}">${ic[0]}</span>`
+      +`<span class="nm">${t}</span><span class="cnt">${m.cnt}</span><span class="cntu">次</span>`
+      +`<span class="met">${met}</span></div>`;
+  }).join('');
+  return `<div class="poster-week">
+    <div class="top"><span class="brand">燃知</span><span class="range">${label}</span></div>
+    <div class="period">${period}</div>
+    <div class="hero-num">${list.length}<small>次</small></div>
+    <div class="meta">${min} 分钟  ·  ${kcal.toLocaleString()} kcal</div>
+    <div class="sec">运动分类</div>
+    ${rows||'<div class="muted">暂无数据</div>'}
+    <div class="hook">主项是「${types[0]||'—'}」。共 ${list.length} 次，下周再抬一点。</div>
+    <div class="mark">燃知</div>
+  </div>`;
+}
+function renderPosterLegacy(x){
+  const ic=icon(x.type);
+  return `<div class="poster-legacy">
+    <div class="lg-hd"><div class="lg-ic" style="background:${ic[1]}">${ic[0]}</div>
+      <div><div class="lg-title">${x.type}</div><div class="lg-sub">${fmtMD(x.d)} ${x.t} · 燃知</div></div></div>
+    <div class="lg-grid">
+      <div><b>${x.kcal}</b><span>消耗 kcal</span></div>
+      <div><b>${x.min}</b><span>时长 分钟</span></div>
+      <div><b>${x.avgHR}</b><span>平均心率</span></div>
+      <div><b>${x.km>0?x.km:'—'}</b><span>距离 km</span></div>
+    </div>
+    <div class="lg-cap">完成一次 ${x.type}，消耗 ${x.kcal} kcal。继续保持！</div>
+    <div class="lg-ft">数据来自 Apple 健康 · 燃知</div>
+  </div>`;
+}
+function renderSharePosters(){
+  let x=WK_INDEXED[shareWorkoutId];
+  if(!x) x=WK_INDEXED.find(w=>w.gps&&w.km>0)||WK_INDEXED[0];
+  if(!x){document.getElementById('sharePoster').innerHTML='<div class="muted" style="padding:40px;text-align:center">暂无运动数据</div>';return;}
+  shareWorkoutId=x.id;
+  let html='';
+  if(shareTpl==='route') html=renderPosterRoute(x);
+  else if(shareTpl==='minimal') html=renderPosterMinimal(x);
+  else html=renderPosterWeek();
+  document.getElementById('sharePoster').innerHTML=html;
+  document.getElementById('shareOld').innerHTML=renderPosterLegacy(x);
+}
+
+// URL #share 直接打开分享预览（须在函数定义之后）
+if(location.hash.replace('#','')==='share') openSharePreview(0);
+
+// 用记录 id 作为随机种子，生成一条稳定的伪 GPS 轨迹并画成 SVG 地图
+function trackMapSVG(id,x){
+  let seed=id*9301+49297;
+  const rnd=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
+  const W=340,H=200,pad=26;
+  const n=26;
+  let px=W*0.2, py=H*0.7, ang=rnd()*Math.PI*2;
+  const pts=[];
+  for(let i=0;i<n;i++){
+    ang+=(rnd()-0.5)*1.1;
+    px+=Math.cos(ang)*(10+rnd()*8);
+    py+=Math.sin(ang)*(8+rnd()*6);
+    px=Math.max(pad,Math.min(W-pad,px));
+    py=Math.max(pad,Math.min(H-pad,py));
+    pts.push([px,py]);
+  }
+  const path=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  // 网格线模拟地图底
+  let grid='';
+  for(let gx=0;gx<=W;gx+=40)grid+=`<line x1="${gx}" y1="0" x2="${gx}" y2="${H}" stroke="rgba(255,255,255,.04)"/>`;
+  for(let gy=0;gy<=H;gy+=40)grid+=`<line x1="0" y1="${gy}" x2="${W}" y2="${gy}" stroke="rgba(255,255,255,.04)"/>`;
+  const s=pts[0],e=pts[pts.length-1];
+  return `<div class="map-box">
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+      ${grid}
+      <path d="${path}" fill="none" stroke="#ff8f33" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>
+      <circle cx="${s[0]}" cy="${s[1]}" r="6" fill="#34c759" stroke="#fff" stroke-width="2"/>
+      <circle cx="${e[0]}" cy="${e[1]}" r="6" fill="#ff453a" stroke="#fff" stroke-width="2"/>
+    </svg>
+    <div class="map-badge">&#128205; 模拟轨迹 · 起点(绿) → 终点(红)</div>
+  </div>`;
+}
+
+// 分段配速（每公里）
+function splitsHTML(x){
+  const kmInt=Math.max(1,Math.round(x.km));
+  const base=x.min/x.km;
+  let seed=x.id*7+3;const rnd=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
+  const paces=[];for(let i=0;i<kmInt;i++)paces.push(base*(0.9+rnd()*0.2));
+  const max=Math.max(...paces),min=Math.min(...paces);
+  return paces.map((p,i)=>{
+    const m=Math.floor(p),s=Math.round((p-m)*60);
+    const pace=m+"'"+String(s).padStart(2,'0')+'"';
+    const w=max===min?100:(1-(p-min)/(max-min))*70+30;
+    return `<div class="split-row"><span style="width:34px;color:var(--sub)">${i+1}km</span>`
+      +`<div class="sp-bar"><i style="width:${w}%"></i></div><b>${pace}</b></div>`;
+  }).join('');
+}
+
+// 心率曲线 SVG
+function hrCurveSVG(x){
+  const W=340,H=120,n=24;
+  let seed=x.id*13+5;const rnd=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
+  const lo=x.avgHR-18, hi=x.maxHR;
+  const pts=[];
+  for(let i=0;i<n;i++){
+    const warm=i<3?i/3:1;
+    const cool=i>n-4?(n-1-i)/3:1;
+    const base=lo+(x.avgHR-lo)*warm;
+    const v=base+(rnd()*(hi-x.avgHR))*warm*cool;
+    const px=(i/(n-1))*W;
+    const py=H-((v-(lo-10))/((hi+8)-(lo-10)))*H;
+    pts.push([px,py]);
+  }
+  const path=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const area=path+` L ${W} ${H} L 0 ${H} Z`;
+  return `<div style="height:120px"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:100%">
+    <path d="${area}" fill="rgba(255,69,58,.12)"/>
+    <path d="${path}" fill="none" stroke="#ff453a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg></div>`;
+}
+
+const gridColor='rgba(255,255,255,.06)', tickColor='#8a97a6';
+function baseOpts(){return{responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{display:false}},
+  scales:{x:{grid:{display:false},ticks:{color:tickColor,font:{size:10}}},
+          y:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10}}}}};}
+
+function drawCharts(){
+  const days=['7/25','7/26','7/27','7/28','7/29','7/30','7/31'];
+  new Chart(document.getElementById('stepsChart'),{type:'bar',
+    data:{labels:days,datasets:[{data:[7200,9100,6400,11200,8800,7900,9240],
+      backgroundColor:days.map((_,i)=>i===6?'#34c759':'rgba(52,199,89,.45)'),borderRadius:6}]},
+    options:baseOpts()});
+  new Chart(document.getElementById('energyChart'),{type:'line',
+    data:{labels:days,datasets:[{data:[280,360,240,420,340,300,356],
+      borderColor:'#ff8f33',backgroundColor:'rgba(255,143,51,.12)',fill:true,tension:.4,
+      pointBackgroundColor:'#ff8f33',pointRadius:3}]},
+    options:baseOpts()});
+  new Chart(document.getElementById('hrChart'),{type:'doughnut',
+    data:{labels:['热身','燃脂','有氧','无氧','极限'],
+      datasets:[{data:[35,28,22,12,3],
+      backgroundColor:['#5ac8fa','#34c759','#ffd60a','#ff8f33','#ff453a'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+      plugins:{legend:{position:'right',labels:{color:'#e8edf2',font:{size:11},boxWidth:12,padding:8}}}}});
+}
+
+/* ===== 身体页趋势 ===== */
+let bodyWeightChart=null;
+const BODY_W30=[69.3,69.1,69.0,68.9,68.8,68.7,68.6,68.5];
+const BODY_W90=[70.1,69.8,69.6,69.4,69.3,69.1,69.0,68.9,68.8,68.7,68.6,68.5];
+const BODY_L30=['7/1','7/5','7/10','7/14','7/18','7/22','7/26','7/31'];
+const BODY_L90=['5/1','5/15','6/1','6/15','6/25','7/1','7/8','7/15','7/20','7/25','7/28','7/31'];
+
+function drawBody(){ renderBodyTrend('30'); }
+
+function switchBodyTrend(btn,range){
+  btn.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBodyTrend(range);
+}
+
+function renderBodyTrend(range){
+  const is30=range==='30';
+  document.getElementById('bodyTrendRangeLbl').textContent=is30?'近30天':'近90天';
+  document.getElementById('bodyWDelta').textContent=is30?'−0.8 kg':'−1.6 kg';
+  document.getElementById('bodyFDelta').textContent=is30?'−0.4%':'−0.9%';
+  document.getElementById('bodyBDelta').textContent='持平';
+  const labels=is30?BODY_L30:BODY_L90;
+  const data=is30?BODY_W30:BODY_W90;
+  if(bodyWeightChart){ bodyWeightChart.destroy(); bodyWeightChart=null; }
+  bodyWeightChart=new Chart(document.getElementById('bodyWeightChart'),{type:'line',
+    data:{labels,
+      datasets:[{label:'体重 kg',data,
+        borderColor:'#0a84ff',backgroundColor:'rgba(10,132,255,.12)',fill:true,tension:.35,
+        pointBackgroundColor:'#0a84ff',pointRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:c=>' '+c.parsed.y+' kg'}}},
+      scales:{x:{grid:{display:false},ticks:{color:tickColor,font:{size:10}}},
+        y:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10},callback:v=>v+'kg'},
+           suggestedMin:Math.min(...data)-0.5,suggestedMax:Math.max(...data)+0.5}}}});
+}
+
+/* ===== 睡眠 ===== */
+// 昨夜睡眠阶段（分钟）— 用于占比条
+const SLEEP_STAGES = [
+  {name:'深睡',  min:92,  color:'#3634a3'},
+  {name:'核心睡眠',min:236, color:'#5e5ce6'},
+  {name:'REM',  min:104, color:'#0a84ff'},
+  {name:'清醒',  min:6,   color:'#8a97a6'}
+];
+// 昨夜分期时间轴片段：相对入睡分钟起点 → 持续分钟，stage: awake/rem/core/deep
+// 入睡 23:42，起床 07:00，总跨度 438 分钟
+const SLEEP_HYPN = [
+  {t:0,  d:18, s:'core'},{t:18, d:42, s:'deep'},{t:60, d:8, s:'awake'},
+  {t:68, d:55, s:'core'},{t:123,d:38, s:'rem'},{t:161,d:50, s:'core'},
+  {t:211,d:35, s:'deep'},{t:246,d:6,  s:'awake'},{t:252,d:48, s:'core'},
+  {t:300,d:42, s:'rem'},{t:342,d:40, s:'core'},{t:382,d:28, s:'deep'},
+  {t:410,d:28, s:'rem'}
+];
+const HYPNO_Y = {awake:0, rem:1, core:2, deep:3};
+const HYPNO_C = {awake:'#8a97a6', rem:'#0a84ff', core:'#5e5ce6', deep:'#3634a3'};
+
+// 近7晚（含多指标，供趋势切换）
+// sleepMin / deepMin / eff(0-1) / score / startH / endH
+const SLEEP_7 = [
+  {day:'一',sleepMin:404,deepMin:78, eff:0.91,score:76,startH:23.4,endH:6.9},
+  {day:'二',sleepMin:452,deepMin:96, eff:0.94,score:84,startH:23.1,endH:7.0},
+  {day:'三',sleepMin:388,deepMin:70, eff:0.88,score:71,startH:24.1,endH:6.8},
+  {day:'四',sleepMin:430,deepMin:88, eff:0.93,score:80,startH:23.3,endH:7.1},
+  {day:'五',sleepMin:410,deepMin:82, eff:0.90,score:77,startH:23.6,endH:7.0},
+  {day:'六',sleepMin:486,deepMin:110,eff:0.95,score:88,startH:24.6,endH:8.4},
+  {day:'日',sleepMin:438,deepMin:92, eff:0.94,score:82,startH:23.7,endH:7.2}
+];
+// 昨夜 vs 近7晚均值（原型演示数据）
+const SLEEP_VS = {
+  bedDeltaMin: -18,   // 负=更早
+  durDeltaMin: 12,    // 正=更长
+  deepDeltaMin: 6,
+  avgBed:'23:38', avgDur:'7.1h', avgDeep:'1时26分'
+};
+
+let sleepTrendChart=null;
+let sleepTrendMetric='hours';
+
+function hm(mins){const h=Math.floor(mins/60),m=Math.round(mins%60);return h+'时'+(m?m+'分':'');}
+
+function drawSleep(){
+  // —— vs 平常三列 ——
+  const fmtDelta=(m,earlierLabel,laterLabel)=>{
+    if(Math.abs(m)<3) return {cls:'flat', text:'持平'};
+    if(m<0) return {cls:'up', text:`早 ${Math.abs(m)} 分`};
+    return {cls:'down', text:`晚 ${m} 分`};
+  };
+  const bed=fmtDelta(SLEEP_VS.bedDeltaMin);
+  // 时长/深睡：正=多（绿），负=少（橙）
+  const durCls=SLEEP_VS.durDeltaMin>=3?'up':(SLEEP_VS.durDeltaMin<=-3?'down':'flat');
+  const deepCls=SLEEP_VS.deepDeltaMin>=3?'up':(SLEEP_VS.deepDeltaMin<=-3?'down':'flat');
+  const durTxt=Math.abs(SLEEP_VS.durDeltaMin)<3?'持平':(SLEEP_VS.durDeltaMin>0?`多 ${SLEEP_VS.durDeltaMin} 分`:`少 ${Math.abs(SLEEP_VS.durDeltaMin)} 分`);
+  const deepTxt=Math.abs(SLEEP_VS.deepDeltaMin)<3?'持平':(SLEEP_VS.deepDeltaMin>0?`多 ${SLEEP_VS.deepDeltaMin} 分`:`少 ${Math.abs(SLEEP_VS.deepDeltaMin)} 分`);
+  document.getElementById('sleepVs').innerHTML=
+    `<div class="cell"><div class="lb">入睡 vs 平常</div><div class="vv ${bed.cls}">${bed.text}</div><div class="base">均值 ${SLEEP_VS.avgBed}</div></div>`
+   +`<div class="cell"><div class="lb">时长 vs 平常</div><div class="vv ${durCls}">${durTxt}</div><div class="base">均值 ${SLEEP_VS.avgDur}</div></div>`
+   +`<div class="cell"><div class="lb">深睡 vs 平常</div><div class="vv ${deepCls}">${deepTxt}</div><div class="base">均值 ${SLEEP_VS.avgDeep}</div></div>`;
+
+  // —— 分期时间轴 ——
+  const totalSpan=SLEEP_HYPN.reduce((m,x)=>Math.max(m,x.t+x.d),0);
+  const rowH=100/4;
+  document.getElementById('sleepHypnoPlot').innerHTML=SLEEP_HYPN.map(x=>{
+    const left=(x.t/totalSpan*100).toFixed(2);
+    const width=Math.max(x.d/totalSpan*100,0.4).toFixed(2);
+    const top=(HYPNO_Y[x.s]*rowH+4).toFixed(1);
+    const h=(rowH-10).toFixed(1);
+    return `<div class="hseg" style="left:${left}%;width:${width}%;top:${top}%;height:${h}%;background:${HYPNO_C[x.s]}"></div>`;
+  }).join('');
+
+  // —— 阶段占比条 + 图例 ——
+  const total=SLEEP_STAGES.reduce((s,x)=>s+x.min,0);
+  document.getElementById('sleepStageBar').innerHTML=SLEEP_STAGES.map(s=>
+    `<i style="width:${(s.min/total*100).toFixed(1)}%;background:${s.color}"></i>`).join('');
+  document.getElementById('sleepStageLegend').innerHTML=SLEEP_STAGES.map(s=>
+    `<div class="lg"><span class="sw" style="background:${s.color}"></span>`
+    +`<span class="nm">${s.name}</span><span class="vv">${hm(s.min)}</span></div>`).join('');
+
+  // —— 作息规律条 ——
+  const AX0=21, AX1=33;
+  document.getElementById('sleepSchedule').innerHTML=SLEEP_7.map(d=>{
+    const start=d.startH, end=d.endH+24;
+    const left=(start-AX0)/(AX1-AX0)*100;
+    const width=(end-start)/(AX1-AX0)*100;
+    return `<div class="sched-row"><span class="day">${d.day}</span>`
+      +`<div class="sched-track"><i style="left:${left.toFixed(1)}%;width:${width.toFixed(1)}%"></i></div>`
+      +`<span class="dur">${(d.sleepMin/60).toFixed(1)}h</span></div>`;
+  }).join('');
+
+  // —— 趋势图 ——
+  renderSleepTrend('hours');
+}
+
+function switchSleepTrend(btn, metric){
+  document.querySelectorAll('#sleepTrendSeg button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSleepTrend(metric);
+}
+
+function renderSleepTrend(metric){
+  sleepTrendMetric=metric;
+  const cfg={
+    hours:{label:'小时', avgLabel:'日均 7.1 小时', data:SLEEP_7.map(d=>+(d.sleepMin/60).toFixed(1)),
+           color:d=>d.sleepMin>=420?'#5e5ce6':'rgba(94,92,230,.4)', tip:v=>v+' 小时', yMax:9, yCb:v=>v+'h'},
+    deep: {label:'深睡', avgLabel:'日均深睡 88 分', data:SLEEP_7.map(d=>d.deepMin),
+           color:d=>d.deepMin>=90?'#3634a3':'rgba(54,52,163,.45)', tip:v=>v+' 分钟', yMax:140, yCb:v=>v+'m'},
+    eff:  {label:'效率', avgLabel:'日均效率 92%', data:SLEEP_7.map(d=>Math.round(d.eff*100)),
+           color:d=>d.eff>=0.9?'#0a84ff':'rgba(10,132,255,.4)', tip:v=>v+'%', yMax:100, yCb:v=>v+'%'},
+    score:{label:'评分', avgLabel:'日均评分 80', data:SLEEP_7.map(d=>d.score),
+           color:d=>d.score>=80?'#34c759':'rgba(52,199,89,.4)', tip:v=>v+' 分', yMax:100, yCb:v=>v}
+  }[metric];
+  document.getElementById('sleepTrendAvg').textContent=cfg.avgLabel;
+  if(sleepTrendChart){ sleepTrendChart.destroy(); sleepTrendChart=null; }
+  sleepTrendChart=new Chart(document.getElementById('sleepTrendChart'),{type:'bar',
+    data:{labels:SLEEP_7.map(d=>d.day),
+      datasets:[{data:cfg.data,
+        backgroundColor:SLEEP_7.map(cfg.color),
+        borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:c=>cfg.tip(c.parsed.y)}}},
+      scales:{x:{grid:{display:false},ticks:{color:tickColor,font:{size:11}}},
+        y:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10},callback:cfg.yCb},
+           suggestedMin:0,suggestedMax:cfg.yMax}}}});
+}
+
+/* ===== 轻量 Markdown 渲染器（AI 建议） ===== */
+function renderMarkdown(md){
+  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const inline=s=>esc(s)
+    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^*]+)\*/g,'$1<em>$2</em>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>');
+  const lines=md.replace(/\r/g,'').split('\n');
+  let html='',listType=null;
+  const closeList=()=>{if(listType){html+=`</${listType}>`;listType=null;}};
+  for(let raw of lines){
+    const line=raw.replace(/\s+$/,'');
+    if(!line.trim()){closeList();continue;}
+    let m;
+    if(/^#{1,3}\s+/.test(line)){closeList();
+      const lv=line.match(/^#+/)[0].length;
+      html+=`<h${lv}>${inline(line.replace(/^#+\s+/,''))}</h${lv}>`;continue;}
+    if(/^>\s?/.test(line)){closeList();
+      html+=`<blockquote>${inline(line.replace(/^>\s?/,''))}</blockquote>`;continue;}
+    if(/^(-{3,}|\*{3,})$/.test(line.trim())){closeList();html+='<hr>';continue;}
+    if((m=line.match(/^\s*[-*]\s+(.*)/))){if(listType!=='ul'){closeList();html+='<ul>';listType='ul';}
+      html+=`<li>${inline(m[1])}</li>`;continue;}
+    if((m=line.match(/^\s*\d+\.\s+(.*)/))){if(listType!=='ol'){closeList();html+='<ol>';listType='ol';}
+      html+=`<li>${inline(m[1])}</li>`;continue;}
+    closeList();html+=`<p>${inline(line)}</p>`;
+  }
+  closeList();
+  return html;
+}
+
+// 模拟大模型返回的即时建议 Markdown
+const AI_MARKDOWN = `## 📊 整体评估
+
+近 7 天你的**活动评分 81 分**，处于良好水平。日均步数 8,610 步（较前一周 **+14%**），锻炼时长 186 分钟已达到 WHO 每周 150 分钟推荐量，静息心率 58 次/分显示心肺功能优秀。BMI *22.3* 处于健康区间。
+
+## 🌟 做得好的地方
+
+- 运动频率稳定，近 7 天完成 **7 次训练**，有氧 + 力量搭配合理
+- 步数趋势上升，习惯保持良好
+- 静息心率与 HRV 表现优秀，恢复能力不错
+
+## 🎯 接下来可执行建议
+
+1. 有 2 天活动能量未达 400 kcal 目标，可在久坐日安排 15 分钟快走补足
+2. 力量训练建议增加**下肢与核心**比例，每周 2 次即可
+3. 跑步配速可尝试加入 1 次\`间歇训练\`，提升心肺上限
+4. 保持每晚固定作息，有助于维持 HRV 与静息心率
+
+> ⚠️ 以上建议基于运动科学一般规律，不构成医疗诊断。如有身体不适请咨询专业医生。`;
+
+// 上周自然周 AI 周报（图文结构演示）
+const WEEKLY_BRIEF={
+  headline:'训练稳定，睡眠略欠规律',
+  vibe:'稳健',
+  highlights:[
+    {symbol:'run',title:'训练 6 次',detail:'跑3·力2·骑1，搭配合理'},
+    {symbol:'flame',title:'能量 +12%',detail:'综合评分 78/100'},
+    {symbol:'sleep',title:'睡够 4/7',detail:'运动日深睡略更好'}
+  ],
+  metricNotes:[
+    {key:'workouts',note:'频率够用'},
+    {key:'sleep',note:'周末偏晚'},
+    {key:'score',note:'良好区间'},
+    {key:'resting',note:'恢复不错'}
+  ],
+  actions:['2次轻松跑+1次短间歇','补1次下肢力量','固定起床时间']
+};
+const WEEKLY_MD = `（原型已改为短图文结构，详情见卡片）`;
+
+const WEEK_SNAP={
+  range:'7月21日 – 7月27日 · 2026-W30',
+  workouts:6, exerciseMin:172, energy:2650, sleep:'7.0h',
+  score:78, bmi:'22.5', resting:58, goodSleep:'4/7',
+  types:[{name:'跑步',count:3},{name:'力量',count:2},{name:'骑行',count:1}],
+  preview:'训练稳定、睡眠略欠规律，本周宜「练得准、睡得齐」。完成 6 次训练，活动能量周环比 +12%…'
+};
+
+const WEEK_HISTORY=[
+  {id:'2026-W30',range:'7月21日 – 7月27日',workouts:6,score:78,brief:WEEKLY_BRIEF,snap:WEEK_SNAP},
+  {id:'2026-W29',range:'7月14日 – 7月20日',workouts:5,score:72,
+    brief:{headline:'中等负荷，力量略少',vibe:'推进中',
+      highlights:[{symbol:'run',title:'训练 5 次',detail:'评分 72'},{symbol:'sleep',title:'睡够 5/7',detail:'睡眠更稳'}],
+      metricNotes:[{key:'workouts',note:'可再加练'},{key:'sleep',note:'规律不错'}],
+      actions:['补1次下肢力量','保持起床时间','能量空窗日快走15分钟']},
+    snap:{workouts:5,exerciseMin:140,energy:2200,sleep:'7.2h',score:72,bmi:'22.6',resting:59,goodSleep:'5/7',
+      types:[{name:'跑步',count:3},{name:'力量',count:1},{name:'骑行',count:1}],
+      preview:'中等负荷周，力量略少、睡眠更稳。'}}
+];
+
+let weekReviewReady=false;
+let weekReviewLoading=false;
+
+function wrTile(ic,bg,val,label){
+  return `<div class="wr-tile"><div class="ic" style="background:${bg}">${ic}</div>
+    <div><b>${val}</b><span>${label}</span></div></div>`;
+}
+
+function wrRichHTML(snap,preview,brief){
+  const b=brief||WEEKLY_BRIEF;
+  const notes={};(b.metricNotes||[]).forEach(n=>notes[n.key]=n.note);
+  const maxC=Math.max(...snap.types.map(t=>t.count),1);
+  const bars=snap.types.map(t=>`<div class="wr-bar"><div class="name">${t.name}</div>
+    <div class="track"><div class="fill" style="width:${Math.max(8,t.count/maxC*100)}%"></div></div>
+    <div class="n">${t.count}</div></div>`).join('');
+  const noteLine=(k)=>notes[k]?`<div style="font-size:10px;color:var(--sub);margin-top:4px;">${notes[k]}</div>`:'';
+  return `
+    <div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:12px;">
+      <div>
+        <span style="display:inline-block;background:rgba(255,143,51,.16);color:var(--accent);font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;">${b.vibe}</span>
+        <div style="font-size:18px;font-weight:800;margin-top:8px;line-height:1.35;">${b.headline}</div>
+      </div>
+      <div style="text-align:center;flex:0 0 auto;">
+        <div style="font-size:34px;font-weight:900;color:var(--accent);line-height:1;">${snap.score}</div>
+        <div style="font-size:11px;color:var(--sub);">评分</div>
+      </div>
+    </div>
+    <div class="wr-grid">
+      <div class="wr-tile"><div class="ic" style="background:rgba(255,143,51,.18)">🏃</div>
+        <div><b>${snap.workouts}</b><span>训练次数</span>${noteLine('workouts')}</div></div>
+      <div class="wr-tile"><div class="ic" style="background:rgba(255,214,10,.18)">⏱</div>
+        <div><b>${snap.exerciseMin}</b><span>锻炼分钟</span>${noteLine('exercise')}</div></div>
+      <div class="wr-tile"><div class="ic" style="background:rgba(255,69,58,.18)">🔥</div>
+        <div><b>${snap.energy}</b><span>活动能量</span>${noteLine('energy')}</div></div>
+      <div class="wr-tile"><div class="ic" style="background:rgba(94,92,230,.18)">😴</div>
+        <div><b>${snap.sleep}</b><span>均睡眠</span>${noteLine('sleep')}</div></div>
+    </div>
+    <div class="wr-types"><div class="lbl">运动构成</div>${bars}</div>
+    <div class="wr-chips">
+      <div class="wr-chip"><b>${snap.score}</b><span>评分</span></div>
+      <div class="wr-chip"><b>${snap.bmi}</b><span>BMI</span></div>
+      <div class="wr-chip"><b>${snap.resting}</b><span>静息</span></div>
+      <div class="wr-chip"><b>${snap.goodSleep}</b><span>睡够</span></div>
+    </div>`;
+}
+
+function wrEmptyHTML(){
+  return `<div class="wr-empty-glyphs">
+      <div class="g"><div class="box" style="background:rgba(255,143,51,.16)">🏃</div><span>运动</span></div>
+      <div class="g"><div class="box" style="background:rgba(94,92,230,.16)">😴</div><span>睡眠</span></div>
+      <div class="g"><div class="box" style="background:rgba(255,55,95,.16)">❤️</div><span>身体</span></div>
+    </div>
+    <p class="muted" style="font-size:13px;line-height:1.5;margin:0;">
+      结合上周运动、睡眠与身体数据，由 AI 生成总结与接下来的建议。支持图文阅读，历史周报可回看。
+    </p>`;
+}
+
+function wrCompactHTML(snap,brief){
+  const b=brief||WEEKLY_BRIEF;
+  const range=(snap.range||'').replace(/\s*·\s*\d{4}-W\d+/,'');
+  return `<div onclick="openWeekDetail()" style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:rgba(0,0,0,.18);cursor:pointer;">
+    <div style="flex:1;min-width:0;">
+      <span style="display:inline-block;background:rgba(255,143,51,.16);color:var(--accent);font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;">${b.vibe}</span>
+      <div style="font-size:17px;font-weight:800;margin-top:8px;line-height:1.35;">${b.headline}</div>
+      <div style="font-size:12px;color:var(--sub);margin-top:6px;">训练 ${snap.workouts} 次 · ${snap.exerciseMin} 分钟</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:36px;font-weight:900;color:var(--accent);line-height:1;">${snap.score}</div>
+      <div style="font-size:11px;color:var(--sub);">评分</div>
+    </div>
+    <div style="color:var(--sub);font-size:16px;">›</div>
+  </div>`;
+}
+
+function renderWeekReview(hasContent){
+  weekReviewReady=!!hasContent;
+  const body=document.getElementById('weekReviewBody');
+  const gen=document.getElementById('btnWeekGen');
+  const hint=document.getElementById('weekHint');
+  document.getElementById('weekRangeLabel').textContent=(WEEK_SNAP.range||'').replace(/\s*·\s*\d{4}-W\d+/,'');
+  if(weekReviewLoading){
+    body.innerHTML=`<div class="ai-msg" style="margin:0;"><div class="typing"><i></i><i></i><i></i></div>
+      &nbsp;正在生成上周周报…</div>`;
+    gen.disabled=true;
+    return;
+  }
+  gen.disabled=false;
+  if(hasContent){
+    body.innerHTML=wrCompactHTML(WEEK_SNAP,WEEKLY_BRIEF);
+    gen.textContent='重新生成上周周报';
+    gen.className='btn-secondary';
+    hint.textContent='点摘要进入图文详情；周一首次打开会自动生成。';
+  }else{
+    body.innerHTML=`<div style="display:flex;gap:12px;align-items:center;">
+      <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,143,51,.14);display:flex;align-items:center;justify-content:center;font-size:20px;">📄</div>
+      <p class="muted" style="font-size:13px;line-height:1.5;margin:0;">结合上周运动、睡眠与身体数据，生成一份可扫读的图文周报。</p>
+    </div>`;
+    gen.textContent='生成上周周报';
+    gen.className='btn-primary';
+    hint.textContent='';
+  }
+}
+
+function genWeeklyReview(){
+  if(weekReviewLoading) return;
+  weekReviewLoading=true;
+  renderWeekReview(weekReviewReady);
+  setTimeout(()=>{
+    weekReviewLoading=false;
+    renderWeekReview(true);
+  },1600);
+}
+
+function openWeekDetail(id){
+  const item=WEEK_HISTORY.find(x=>x.id===(id||'2026-W30'))||WEEK_HISTORY[0];
+  const b=item.brief||WEEKLY_BRIEF;
+  const hl=(b.highlights||[]).map(h=>`<div style="display:flex;gap:10px;padding:8px 0;border-top:1px solid var(--line);">
+      <div style="width:40px;height:40px;border-radius:12px;background:rgba(255,143,51,.14);display:flex;align-items:center;justify-content:center;">✦</div>
+      <div><div style="font-size:14px;font-weight:700;">${h.title}</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:2px;">${h.detail}</div></div>
+    </div>`).join('');
+  const acts=(b.actions||[]).map((a,i)=>`<div style="display:flex;gap:10px;padding:6px 0;">
+      <div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;">${i+1}</div>
+      <div style="font-size:14px;">${a}</div></div>`).join('');
+  document.getElementById('weekSheetTitle').textContent=item.range;
+  document.getElementById('weekSheetBody').innerHTML=
+    wrRichHTML(item.snap||WEEK_SNAP,item.snap&&item.snap.preview,b)+
+    `<div class="card" style="margin-top:12px;"><h3>关键亮点</h3>${hl}</div>
+     <div class="card"><h3>本周行动</h3>${acts}</div>
+     <button class="btn-primary" onclick="alert('原型演示：正式 App 右上角可分享海报')">分享周报</button>
+     <div class="muted" style="font-size:11px;margin-top:10px;">建议仅供参考 · 燃知</div>`;
+  document.getElementById('weekSheet').classList.add('show');
+}
+
+function openWeekHistory(){
+  document.getElementById('weekSheetTitle').textContent='历史周报';
+  document.getElementById('weekSheetBody').innerHTML=WEEK_HISTORY.map(h=>`
+    <div class="hist-row" onclick="openWeekDetail('${h.id}')">
+      <div class="hi">📄</div>
+      <div><div class="ht">${h.range}</div>
+        <div class="hs">训练 ${h.workouts} 次 · 评分 ${h.score}</div></div>
+      <div class="chev">›</div>
+    </div>`).join('');
+  document.getElementById('weekSheet').classList.add('show');
+}
+
+function closeWeekSheet(){
+  document.getElementById('weekSheet').classList.remove('show');
+}
+
+function genAI(){
+  const out=document.getElementById('ai-output');
+  out.innerHTML='<div class="ai-msg"><div class="typing"><i></i><i></i><i></i></div> &nbsp;正在分析你的健康数据…</div>';
+  setTimeout(()=>{
+    out.innerHTML=`<div class="ai-msg md">${renderMarkdown(AI_MARKDOWN)}</div>
+    <button class="btn-ghost" onclick="genAI()">重新生成</button>`;
+  },1600);
+}
+</script>
+</body>
+</html>

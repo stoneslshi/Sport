@@ -1,0 +1,486 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000017 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000016 /* Assets.xcassets */; };
+		C10000000000000000000001 /* SportHealthApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000001 /* SportHealthApp.swift */; };
+		C10000000000000000000002 /* HealthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000002 /* HealthModels.swift */; };
+		C10000000000000000000003 /* InsightModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000003 /* InsightModels.swift */; };
+		C10000000000000000000014 /* SleepModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000014 /* SleepModels.swift */; };
+		C10000000000000000000004 /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000004 /* HealthKitManager.swift */; };
+		C10000000000000000000005 /* AnalysisEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005 /* AnalysisEngine.swift */; };
+		C10000000000000000000006 /* AIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000006 /* AIService.swift */; };
+		C10000000000000000000007 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000007 /* KeychainHelper.swift */; };
+		C10000000000000000000008 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000008 /* Extensions.swift */; };
+		C10000000000000000000009 /* HealthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000009 /* HealthViewModel.swift */; };
+		C1000000000000000000000A /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000A /* RootTabView.swift */; };
+		C1000000000000000000000B /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000B /* DashboardView.swift */; };
+		C1000000000000000000000C /* SleepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000C /* SleepView.swift */; };
+		C1000000000000000000000D /* WorkoutsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000D /* WorkoutsView.swift */; };
+		C1000000000000000000000E /* BodyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000E /* BodyView.swift */; };
+		C1000000000000000000000F /* AIAdviceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000F /* AIAdviceView.swift */; };
+		C10000000000000000000010 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000010 /* SettingsView.swift */; };
+		C10000000000000000000011 /* LLMProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000011 /* LLMProvider.swift */; };
+		C10000000000000000000012 /* WorkoutDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000012 /* WorkoutDetailView.swift */; };
+		C10000000000000000000017 /* WorkoutRouteMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000017 /* WorkoutRouteMapView.swift */; };
+		C10000000000000000000018 /* WeeklyAdviceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000018 /* WeeklyAdviceModels.swift */; };
+		C10000000000000000000019 /* AdviceHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019 /* AdviceHistoryStore.swift */; };
+		C10000000000000000000013 /* MarkdownText.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000013 /* MarkdownText.swift */; };
+		C10000000000000000000015 /* ShareComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000015 /* ShareComponents.swift */; };
+		C10000000000000000000016 /* Brand.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000016 /* Brand.swift */; };
+		A10000000000000000000019 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000018 /* LaunchScreen.storyboard */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A10000000000000000000004 /* SportHealth.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SportHealth.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000015 /* SportHealth.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SportHealth.entitlements; sourceTree = "<group>"; };
+		A10000000000000000000016 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B10000000000000000000001 /* SportHealthApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SportHealthApp.swift; sourceTree = "<group>"; };
+		B10000000000000000000002 /* HealthModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthModels.swift; sourceTree = "<group>"; };
+		B10000000000000000000003 /* InsightModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightModels.swift; sourceTree = "<group>"; };
+		B10000000000000000000014 /* SleepModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepModels.swift; sourceTree = "<group>"; };
+		B10000000000000000000004 /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
+		B10000000000000000000005 /* AnalysisEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisEngine.swift; sourceTree = "<group>"; };
+		B10000000000000000000006 /* AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIService.swift; sourceTree = "<group>"; };
+		B10000000000000000000007 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
+		B10000000000000000000008 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		B10000000000000000000009 /* HealthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthViewModel.swift; sourceTree = "<group>"; };
+		B1000000000000000000000A /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
+		B1000000000000000000000B /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		B1000000000000000000000C /* SleepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepView.swift; sourceTree = "<group>"; };
+		B1000000000000000000000D /* WorkoutsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutsView.swift; sourceTree = "<group>"; };
+		B1000000000000000000000E /* BodyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyView.swift; sourceTree = "<group>"; };
+		B1000000000000000000000F /* AIAdviceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAdviceView.swift; sourceTree = "<group>"; };
+		B10000000000000000000010 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		B10000000000000000000011 /* LLMProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMProvider.swift; sourceTree = "<group>"; };
+		B10000000000000000000012 /* WorkoutDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailView.swift; sourceTree = "<group>"; };
+		B10000000000000000000017 /* WorkoutRouteMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRouteMapView.swift; sourceTree = "<group>"; };
+		B10000000000000000000018 /* WeeklyAdviceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyAdviceModels.swift; sourceTree = "<group>"; };
+		B10000000000000000000019 /* AdviceHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdviceHistoryStore.swift; sourceTree = "<group>"; };
+		B10000000000000000000013 /* MarkdownText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownText.swift; sourceTree = "<group>"; };
+		B10000000000000000000015 /* ShareComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareComponents.swift; sourceTree = "<group>"; };
+		B10000000000000000000016 /* Brand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Brand.swift; sourceTree = "<group>"; };
+		A10000000000000000000018 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A10000000000000000000007 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A10000000000000000000002 = {
+			isa = PBXGroup;
+			children = (
+				A1000000000000000000000F /* SportHealth */,
+				A10000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A10000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000004 /* SportHealth.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000000F /* SportHealth */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000001 /* SportHealthApp.swift */,
+				A10000000000000000000010 /* Models */,
+				A10000000000000000000011 /* Services */,
+				A10000000000000000000012 /* ViewModels */,
+				A10000000000000000000013 /* Views */,
+				A10000000000000000000014 /* Utils */,
+				A10000000000000000000016 /* Assets.xcassets */,
+				A10000000000000000000018 /* LaunchScreen.storyboard */,
+				A10000000000000000000015 /* SportHealth.entitlements */,
+			);
+			path = SportHealth;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000010 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000002 /* HealthModels.swift */,
+				B10000000000000000000003 /* InsightModels.swift */,
+				B10000000000000000000014 /* SleepModels.swift */,
+				B10000000000000000000018 /* WeeklyAdviceModels.swift */,
+				B10000000000000000000011 /* LLMProvider.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000011 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000004 /* HealthKitManager.swift */,
+				B10000000000000000000005 /* AnalysisEngine.swift */,
+				B10000000000000000000006 /* AIService.swift */,
+				B10000000000000000000019 /* AdviceHistoryStore.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000012 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000009 /* HealthViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000013 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				B1000000000000000000000A /* RootTabView.swift */,
+				B1000000000000000000000B /* DashboardView.swift */,
+				B1000000000000000000000C /* SleepView.swift */,
+				B1000000000000000000000D /* WorkoutsView.swift */,
+				B1000000000000000000000E /* BodyView.swift */,
+				B1000000000000000000000F /* AIAdviceView.swift */,
+				B10000000000000000000010 /* SettingsView.swift */,
+				B10000000000000000000012 /* WorkoutDetailView.swift */,
+				B10000000000000000000017 /* WorkoutRouteMapView.swift */,
+				B10000000000000000000013 /* MarkdownText.swift */,
+				B10000000000000000000015 /* ShareComponents.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000014 /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000007 /* KeychainHelper.swift */,
+				B10000000000000000000008 /* Extensions.swift */,
+				B10000000000000000000016 /* Brand.swift */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A10000000000000000000005 /* SportHealth */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1000000000000000000000C /* Build configuration list for PBXNativeTarget "SportHealth" */;
+			buildPhases = (
+				A10000000000000000000006 /* Sources */,
+				A10000000000000000000007 /* Frameworks */,
+				A10000000000000000000008 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SportHealth;
+			productName = SportHealth;
+			productReference = A10000000000000000000004 /* SportHealth.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A10000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2630;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					A10000000000000000000005 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+				};
+			};
+			buildConfigurationList = A10000000000000000000009 /* Build configuration list for PBXProject "SportHealth" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+				"zh-Hans",
+			);
+			mainGroup = A10000000000000000000002;
+			productRefGroup = A10000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A10000000000000000000005 /* SportHealth */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A10000000000000000000008 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000017 /* Assets.xcassets in Resources */,
+				A10000000000000000000019 /* LaunchScreen.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A10000000000000000000006 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C10000000000000000000001 /* SportHealthApp.swift in Sources */,
+				C10000000000000000000002 /* HealthModels.swift in Sources */,
+				C10000000000000000000003 /* InsightModels.swift in Sources */,
+				C10000000000000000000014 /* SleepModels.swift in Sources */,
+				C10000000000000000000004 /* HealthKitManager.swift in Sources */,
+				C10000000000000000000005 /* AnalysisEngine.swift in Sources */,
+				C10000000000000000000006 /* AIService.swift in Sources */,
+				C10000000000000000000007 /* KeychainHelper.swift in Sources */,
+				C10000000000000000000008 /* Extensions.swift in Sources */,
+				C10000000000000000000009 /* HealthViewModel.swift in Sources */,
+				C1000000000000000000000A /* RootTabView.swift in Sources */,
+				C1000000000000000000000B /* DashboardView.swift in Sources */,
+				C1000000000000000000000C /* SleepView.swift in Sources */,
+				C1000000000000000000000D /* WorkoutsView.swift in Sources */,
+				C1000000000000000000000E /* BodyView.swift in Sources */,
+				C1000000000000000000000F /* AIAdviceView.swift in Sources */,
+				C10000000000000000000010 /* SettingsView.swift in Sources */,
+				C10000000000000000000011 /* LLMProvider.swift in Sources */,
+				C10000000000000000000012 /* WorkoutDetailView.swift in Sources */,
+				C10000000000000000000017 /* WorkoutRouteMapView.swift in Sources */,
+				C10000000000000000000018 /* WeeklyAdviceModels.swift in Sources */,
+				C10000000000000000000019 /* AdviceHistoryStore.swift in Sources */,
+				C10000000000000000000013 /* MarkdownText.swift in Sources */,
+				C10000000000000000000015 /* ShareComponents.swift in Sources */,
+				C10000000000000000000016 /* Brand.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A1000000000000000000000A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		A1000000000000000000000B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A1000000000000000000000D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = SportHealth/SportHealth.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 6P4KARSH3X;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "燃知";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "需要读取您的运动与健康数据，用于统计分析并生成个性化建议。";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "应用仅读取健康数据用于分析，不会修改您的健康数据。";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于将运动分享卡片保存到相册。";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.workbuddy.SportHealth;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		A1000000000000000000000E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = SportHealth/SportHealth.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 6P4KARSH3X;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "燃知";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "需要读取您的运动与健康数据，用于统计分析并生成个性化建议。";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "应用仅读取健康数据用于分析，不会修改您的健康数据。";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于将运动分享卡片保存到相册。";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.workbuddy.SportHealth;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A10000000000000000000009 /* Build configuration list for PBXProject "SportHealth" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1000000000000000000000A /* Debug */,
+				A1000000000000000000000B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1000000000000000000000C /* Build configuration list for PBXNativeTarget "SportHealth" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1000000000000000000000D /* Debug */,
+				A1000000000000000000000E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A10000000000000000000001 /* Project object */;
+}

@@ -1,0 +1,53 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Xcode
+DerivedData/
+build/
+*.xcuserstate
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+xcuserdata/
+*.xcscmblueprint
+*.playground
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/
+Package.resolved
+
+# CocoaPods / Carthage
+Pods/
+Carthage/Build/
+
+# Secrets & local env
+.env
+.env.*
+*.pem
+secrets/
+Credentials.xcconfig
+**/Secrets.swift
+
+# IDE / tooling
+.idea/
+.vscode/
+.cursor/
+.workbuddy/
+.cache/
+
+# Python / icon scratch
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Optional large local assets (keep app Assets in SportHealth)
+generated-images/
