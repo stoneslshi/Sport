@@ -1,6 +1,55 @@
 import SwiftUI
 import MapKit
 
+// MARK: - Map 适配
+
+private enum RouteMapFitting {
+    /// 在 map 已有有效 bounds 时，将轨迹居中适配。
+    static func fit(
+        _ map: MKMapView,
+        coordinates: [CLLocationCoordinate2D],
+        edgePadding: UIEdgeInsets,
+        animated: Bool = false
+    ) {
+        guard coordinates.count > 1 else { return }
+        guard map.bounds.width > 10, map.bounds.height > 10 else { return }
+
+        map.layoutMargins = .zero
+        map.preservesSuperviewLayoutMargins = false
+        map.directionalLayoutMargins = .zero
+        map.isPitchEnabled = false
+
+        let polyline = MKPolyline(coordinates: coordinates, count: coordinates.count)
+        var rect = polyline.boundingMapRect
+        if rect.size.width < 50 || rect.size.height < 50 {
+            let pad = max(80.0, max(rect.size.width, rect.size.height) * 0.3)
+            rect = rect.insetBy(dx: -pad, dy: -pad)
+        }
+        map.setVisibleMapRect(rect, edgePadding: edgePadding, animated: animated)
+    }
+
+    static func sizeChanged(_ a: CGSize, _ b: CGSize) -> Bool {
+        abs(a.width - b.width) > 0.5 || abs(a.height - b.height) > 0.5
+    }
+
+    static func configureFlatMap(_ map: MKMapView) {
+        map.isPitchEnabled = false
+        map.showsScale = false
+        map.showsCompass = false
+        map.layoutMargins = .zero
+        map.preservesSuperviewLayoutMargins = false
+        map.directionalLayoutMargins = .zero
+        if #available(iOS 17.0, *) {
+            map.preferredConfiguration = MKStandardMapConfiguration(elevationStyle: .flat)
+        }
+    }
+
+    /// 展示用坐标：大陆做 WGS→GCJ，与道路对齐。
+    static func displayCoordinates(_ coordinates: [CLLocationCoordinate2D]) -> [CLLocationCoordinate2D] {
+        ChinaCoordinateTransform.wgs84ToGcj02(coordinates)
+    }
+}
+
 // MARK: - 分段标注模型
 
 struct RouteSplitMarker: Identifiable {
@@ -146,11 +195,17 @@ struct WorkoutRouteDetailView: View {
 
     @State private var progress: Double = 0
     @State private var isPlaying = false
-    @State private var followCamera = true
+    /// 默认总览居中；播放时可点右上角打开跟随
+    @State private var followCamera = false
     @State private var animTask: Task<Void, Never>?
 
+    /// 地图展示坐标（大陆已转 GCJ-02）；距离/动画时长仍用原始 WGS 长度。
+    private var mapCoordinates: [CLLocationCoordinate2D] {
+        RouteMapFitting.displayCoordinates(coordinates)
+    }
+
     private var markers: [RouteSplitMarker] {
-        RouteGeometry.splitMarkers(coordinates: coordinates, splits: splits)
+        RouteGeometry.splitMarkers(coordinates: mapCoordinates, splits: splits)
     }
 
     private var animationDuration: TimeInterval {
@@ -162,7 +217,7 @@ struct WorkoutRouteDetailView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             AnimatedRouteMapView(
-                coordinates: coordinates,
+                coordinates: mapCoordinates,
                 splitMarkers: markers,
                 tint: tint,
                 progress: progress,
@@ -196,7 +251,11 @@ struct WorkoutRouteDetailView: View {
                 .accessibilityLabel(followCamera ? "跟随视角" : "总览视角")
             }
         }
-        .onAppear { play(fromStart: true) }
+        .onAppear {
+            // 先总览居中，再开播（避免首帧错误 fit 造成左右偏移）
+            followCamera = false
+            play(fromStart: true)
+        }
         .onDisappear { animTask?.cancel() }
     }
 
@@ -296,12 +355,7 @@ struct AnimatedRouteMapView: UIViewRepresentable {
     func makeUIView(context: Context) -> MKMapView {
         let map = MKMapView()
         map.delegate = context.coordinator
-        map.showsCompass = true
-        map.showsScale = true
-        if #available(iOS 17.0, *) {
-            map.preferredConfiguration = MKStandardMapConfiguration(elevationStyle: .realistic)
-        }
-        context.coordinator.fitEntireRoute(on: map, coordinates: coordinates)
+        RouteMapFitting.configureFlatMap(map)
         return map
     }
 
@@ -314,6 +368,11 @@ struct AnimatedRouteMapView: UIViewRepresentable {
             progress: progress,
             followCamera: followCamera
         )
+        // 布局完成后再 fit，避免首帧 bounds 不准造成左右偏移
+        let size = map.bounds.size
+        DispatchQueue.main.async {
+            context.coordinator.ensureFitted(on: map, coordinates: coordinates, size: size, followCamera: followCamera)
+        }
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
@@ -322,6 +381,7 @@ struct AnimatedRouteMapView: UIViewRepresentable {
         var tint: UIColor = .systemOrange
         private var lastVisibleSplitCount = -1
         private var lastFollowCamera: Bool?
+        private var lastFitSize: CGSize = .zero
         private var cachedLength: Double = 0
         private var ghostOverlay: MKPolyline?
         private var activeOverlay: MKPolyline?
@@ -330,14 +390,21 @@ struct AnimatedRouteMapView: UIViewRepresentable {
         private var endAnnotation: MKPointAnnotation?
         private var splitAnnotations: [SplitAnnotation] = []
 
+        private var overviewPadding: UIEdgeInsets {
+            UIEdgeInsets(top: 88, left: 40, bottom: 150, right: 40)
+        }
+
         func fitEntireRoute(on map: MKMapView, coordinates: [CLLocationCoordinate2D], animated: Bool = false) {
-            guard coordinates.count > 1 else { return }
-            let poly = MKPolyline(coordinates: coordinates, count: coordinates.count)
-            map.setVisibleMapRect(
-                poly.boundingMapRect,
-                edgePadding: UIEdgeInsets(top: 80, left: 48, bottom: 140, right: 48),
-                animated: animated
-            )
+            RouteMapFitting.fit(map, coordinates: coordinates, edgePadding: overviewPadding, animated: animated)
+            lastFitSize = map.bounds.size
+        }
+
+        func ensureFitted(on map: MKMapView, coordinates: [CLLocationCoordinate2D], size: CGSize, followCamera: Bool) {
+            guard !followCamera else { return }
+            guard size.width > 10, size.height > 10 else { return }
+            if RouteMapFitting.sizeChanged(size, lastFitSize) {
+                fitEntireRoute(on: map, coordinates: coordinates, animated: false)
+            }
         }
 
         func apply(
@@ -406,15 +473,17 @@ struct AnimatedRouteMapView: UIViewRepresentable {
             }
 
             if followCamera {
+                let span = followSpanMeters(progress: progress, coordinates: coordinates)
+                // 纵向多留一点，避免被底部控制条挡住（不改变经度中心，避免左右漂移）
                 let region = MKCoordinateRegion(
                     center: tipCoord,
-                    latitudinalMeters: followSpanMeters(progress: progress, coordinates: coordinates),
-                    longitudinalMeters: followSpanMeters(progress: progress, coordinates: coordinates)
+                    latitudinalMeters: span * 1.15,
+                    longitudinalMeters: span
                 )
                 map.setRegion(region, animated: false)
-            } else if lastFollowCamera != false {
-                // 刚关闭跟随时，拉回全程总览
-                fitEntireRoute(on: map, coordinates: coordinates, animated: true)
+            } else if lastFollowCamera != false || RouteMapFitting.sizeChanged(map.bounds.size, lastFitSize) {
+                // 关闭跟随或尺寸变化时，重新总览居中
+                fitEntireRoute(on: map, coordinates: coordinates, animated: lastFollowCamera != false)
             }
             lastFollowCamera = followCamera
         }
@@ -534,43 +603,81 @@ struct RouteMapView: UIViewRepresentable {
     let coordinates: [CLLocationCoordinate2D]
     let tint: Color
 
+    private var edgePadding: UIEdgeInsets {
+        UIEdgeInsets(top: 36, left: 36, bottom: 36, right: 36)
+    }
+
     func makeUIView(context: Context) -> MKMapView {
         let map = MKMapView()
         map.delegate = context.coordinator
+        RouteMapFitting.configureFlatMap(map)
         map.isRotateEnabled = false
-        map.showsCompass = false
         map.isScrollEnabled = false
         map.isZoomEnabled = false
-        map.isPitchEnabled = false
         return map
     }
 
     func updateUIView(_ map: MKMapView, context: Context) {
-        map.removeOverlays(map.overlays)
-        map.removeAnnotations(map.annotations)
-        guard coordinates.count > 1 else { return }
-
-        let polyline = MKPolyline(coordinates: coordinates, count: coordinates.count)
-        map.addOverlay(polyline)
-
-        if let first = coordinates.first {
-            let a = MKPointAnnotation(); a.coordinate = first; a.title = "起点"
-            map.addAnnotation(a)
-        }
-        if let last = coordinates.last {
-            let a = MKPointAnnotation(); a.coordinate = last; a.title = "终点"
-            map.addAnnotation(a)
-        }
-
-        let rect = polyline.boundingMapRect
-        map.setVisibleMapRect(rect, edgePadding: UIEdgeInsets(top: 40, left: 40, bottom: 40, right: 40), animated: false)
         context.coordinator.tint = UIColor(tint)
+        context.coordinator.sync(
+            on: map,
+            coordinates: coordinates,
+            edgePadding: edgePadding
+        )
+        // 等 SwiftUI 给出最终尺寸后再居中，修复「轨迹往左偏」
+        DispatchQueue.main.async {
+            context.coordinator.fitIfNeeded(
+                on: map,
+                coordinates: coordinates,
+                edgePadding: edgePadding
+            )
+        }
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     final class Coordinator: NSObject, MKMapViewDelegate {
         var tint: UIColor = .systemOrange
+        private var lastCoordCount = -1
+        private var lastFitSize: CGSize = .zero
+
+        func sync(on map: MKMapView, coordinates: [CLLocationCoordinate2D], edgePadding: UIEdgeInsets) {
+            let display = RouteMapFitting.displayCoordinates(coordinates)
+            guard display.count > 1 else {
+                map.removeOverlays(map.overlays)
+                map.removeAnnotations(map.annotations)
+                lastCoordCount = 0
+                return
+            }
+            // 坐标未变时不要反复清图层（会抖）
+            if display.count != lastCoordCount || map.overlays.isEmpty {
+                map.removeOverlays(map.overlays)
+                map.removeAnnotations(map.annotations)
+
+                let polyline = MKPolyline(coordinates: display, count: display.count)
+                map.addOverlay(polyline)
+
+                if let first = display.first {
+                    let a = MKPointAnnotation(); a.coordinate = first; a.title = "起点"
+                    map.addAnnotation(a)
+                }
+                if let last = display.last {
+                    let a = MKPointAnnotation(); a.coordinate = last; a.title = "终点"
+                    map.addAnnotation(a)
+                }
+                lastCoordCount = display.count
+                lastFitSize = .zero // 强制重新 fit
+            }
+            fitIfNeeded(on: map, coordinates: display, edgePadding: edgePadding)
+        }
+
+        func fitIfNeeded(on map: MKMapView, coordinates: [CLLocationCoordinate2D], edgePadding: UIEdgeInsets) {
+            let size = map.bounds.size
+            guard size.width > 10, size.height > 10 else { return }
+            guard RouteMapFitting.sizeChanged(size, lastFitSize) else { return }
+            RouteMapFitting.fit(map, coordinates: coordinates, edgePadding: edgePadding, animated: false)
+            lastFitSize = size
+        }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if let poly = overlay as? MKPolyline {

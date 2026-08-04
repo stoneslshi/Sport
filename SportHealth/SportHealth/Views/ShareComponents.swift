@@ -667,6 +667,8 @@ enum ShareCardRenderer {
                               size: CGSize = CGSize(width: SharePosterLayout.width,
                                                     height: SharePosterLayout.height)) async -> UIImage? {
         guard coordinates.count > 1 else { return nil }
+        // 与详情地图一致：大陆轨迹转 GCJ-02，避免分享海报相对道路偏左
+        let coordinates = ChinaCoordinateTransform.wgs84ToGcj02(coordinates)
 
         var minLat = coordinates[0].latitude,  maxLat = coordinates[0].latitude
         var minLon = coordinates[0].longitude, maxLon = coordinates[0].longitude
@@ -674,12 +676,23 @@ enum ShareCardRenderer {
             minLat = min(minLat, c.latitude);  maxLat = max(maxLat, c.latitude)
             minLon = min(minLon, c.longitude); maxLon = max(maxLon, c.longitude)
         }
-        let center = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2,
-                                            longitude: (minLon + maxLon) / 2)
-        // 轨迹偏上，给底部文案区留呼吸感
-        let latPad = max((maxLat - minLat) * 1.8, 0.003)
-        let lonPad = max((maxLon - minLon) * 1.6, 0.003)
-        let span = MKCoordinateSpan(latitudeDelta: latPad, longitudeDelta: lonPad)
+        // 中心略偏北，给底部文案留白（不改经度，避免轨迹左右偏移）
+        let center = CLLocationCoordinate2D(
+            latitude: (minLat + maxLat) / 2 - (maxLat - minLat) * 0.08,
+            longitude: (minLon + maxLon) / 2
+        )
+        // span 宽高比与海报一致，避免 snapshot 裁切后 point(for:) 与底图错位
+        var latDelta = max((maxLat - minLat) * 1.45, 0.0025)
+        var lonDelta = max((maxLon - minLon) * 1.45, 0.0025)
+        let mapAspect = Double(size.width / max(size.height, 1))
+        let cosLat = max(cos(center.latitude * .pi / 180), 0.2)
+        var regionAspect = (lonDelta * cosLat) / max(latDelta, 1e-9)
+        if regionAspect > mapAspect {
+            latDelta = (lonDelta * cosLat) / mapAspect
+        } else {
+            lonDelta = (latDelta * mapAspect) / cosLat
+        }
+        let span = MKCoordinateSpan(latitudeDelta: latDelta, longitudeDelta: lonDelta)
 
         let options = MKMapSnapshotter.Options()
         options.region = MKCoordinateRegion(center: center, span: span)

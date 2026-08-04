@@ -13,6 +13,7 @@ struct WorkoutDetailView: View {
     @State private var shareItem: ShareImageItem?
     @State private var isPreparingShare = false
     @State private var showAllLaps = false
+    @State private var showRouteReplay = false
 
     init(record: WorkoutRecord) {
         self.record = record
@@ -79,6 +80,16 @@ struct WorkoutDetailView: View {
         }
         .sheet(item: $shareItem) { item in
             ShareSheet(image: item.image, text: item.text)
+        }
+        .navigationDestination(isPresented: $showRouteReplay) {
+            WorkoutRouteDetailView(
+                coordinates: detailed.routeCoordinates,
+                splits: detailed.splits,
+                tint: tint,
+                activityName: detailed.activityType.displayName,
+                distanceKM: detailed.distanceKM,
+                durationMinutes: detailed.durationMinutes
+            )
         }
     }
 
@@ -519,15 +530,9 @@ struct WorkoutDetailView: View {
     // MARK: - 轨迹 / 心率 / 分段（通用）
 
     private var routeMapCard: some View {
-        NavigationLink {
-            WorkoutRouteDetailView(
-                coordinates: detailed.routeCoordinates,
-                splits: detailed.splits,
-                tint: tint,
-                activityName: detailed.activityType.displayName,
-                distanceKM: detailed.distanceKM,
-                durationMinutes: detailed.durationMinutes
-            )
+        // 不用 NavigationLink 包整卡：系统会为右侧 disclosure 预留宽度，轨迹看起来整体偏左。
+        Button {
+            showRouteReplay = true
         } label: {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
