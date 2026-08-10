@@ -5,6 +5,7 @@ import MapKit
 
 private enum RouteMapFitting {
     /// 在 map 已有有效 bounds 时，将轨迹居中适配。
+    /// - Important: `coordinates` 必须与 overlay 使用同一套坐标（大陆为 GCJ），否则会整体偏到一侧。
     static func fit(
         _ map: MKMapView,
         coordinates: [CLLocationCoordinate2D],
@@ -25,6 +26,30 @@ private enum RouteMapFitting {
             let pad = max(80.0, max(rect.size.width, rect.size.height) * 0.3)
             rect = rect.insetBy(dx: -pad, dy: -pad)
         }
+
+        // 先按「可用区域」宽高比对称扩展，避免 MapKit 扩 span 时往一侧偏
+        let usableW = max(1, map.bounds.width - edgePadding.left - edgePadding.right)
+        let usableH = max(1, map.bounds.height - edgePadding.top - edgePadding.bottom)
+        let viewRatio = usableW / usableH
+        let rectRatio = rect.size.width / max(rect.size.height, 1)
+        if rectRatio > viewRatio {
+            let newH = rect.size.width / viewRatio
+            rect = MKMapRect(
+                x: rect.origin.x,
+                y: rect.midY - newH / 2,
+                width: rect.size.width,
+                height: newH
+            )
+        } else {
+            let newW = rect.size.height * viewRatio
+            rect = MKMapRect(
+                x: rect.midX - newW / 2,
+                y: rect.origin.y,
+                width: newW,
+                height: rect.size.height
+            )
+        }
+
         map.setVisibleMapRect(rect, edgePadding: edgePadding, animated: animated)
     }
 
@@ -619,17 +644,19 @@ struct RouteMapView: UIViewRepresentable {
 
     func updateUIView(_ map: MKMapView, context: Context) {
         context.coordinator.tint = UIColor(tint)
+        // 展示与 fit 必须用同一套坐标（GCJ），异步补 fit 时也不能传原始 WGS
+        let display = RouteMapFitting.displayCoordinates(coordinates)
         context.coordinator.sync(
             on: map,
-            coordinates: coordinates,
+            displayCoordinates: display,
             edgePadding: edgePadding
         )
-        // 等 SwiftUI 给出最终尺寸后再居中，修复「轨迹往左偏」
         DispatchQueue.main.async {
             context.coordinator.fitIfNeeded(
                 on: map,
-                coordinates: coordinates,
-                edgePadding: edgePadding
+                coordinates: display,
+                edgePadding: edgePadding,
+                force: true
             )
         }
     }
@@ -641,8 +668,7 @@ struct RouteMapView: UIViewRepresentable {
         private var lastCoordCount = -1
         private var lastFitSize: CGSize = .zero
 
-        func sync(on map: MKMapView, coordinates: [CLLocationCoordinate2D], edgePadding: UIEdgeInsets) {
-            let display = RouteMapFitting.displayCoordinates(coordinates)
+        func sync(on map: MKMapView, displayCoordinates display: [CLLocationCoordinate2D], edgePadding: UIEdgeInsets) {
             guard display.count > 1 else {
                 map.removeOverlays(map.overlays)
                 map.removeAnnotations(map.annotations)
@@ -668,13 +694,18 @@ struct RouteMapView: UIViewRepresentable {
                 lastCoordCount = display.count
                 lastFitSize = .zero // 强制重新 fit
             }
-            fitIfNeeded(on: map, coordinates: display, edgePadding: edgePadding)
+            fitIfNeeded(on: map, coordinates: display, edgePadding: edgePadding, force: false)
         }
 
-        func fitIfNeeded(on map: MKMapView, coordinates: [CLLocationCoordinate2D], edgePadding: UIEdgeInsets) {
+        func fitIfNeeded(
+            on map: MKMapView,
+            coordinates: [CLLocationCoordinate2D],
+            edgePadding: UIEdgeInsets,
+            force: Bool
+        ) {
             let size = map.bounds.size
             guard size.width > 10, size.height > 10 else { return }
-            guard RouteMapFitting.sizeChanged(size, lastFitSize) else { return }
+            if !force, !RouteMapFitting.sizeChanged(size, lastFitSize) { return }
             RouteMapFitting.fit(map, coordinates: coordinates, edgePadding: edgePadding, animated: false)
             lastFitSize = size
         }

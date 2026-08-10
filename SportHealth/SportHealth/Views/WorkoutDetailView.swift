@@ -598,6 +598,7 @@ struct WorkoutDetailView: View {
                     .foregroundStyle(.brown)
                     .interpolationMethod(.catmullRom)
             }
+            .chartXScale(domain: chartMinuteDomain(series.map(\.minute)))
             .chartYScale(domain: domain)
             .chartPlotStyle { $0.clipped() }
             .chartXAxisLabel("分钟")
@@ -644,6 +645,7 @@ struct WorkoutDetailView: View {
                     .foregroundStyle(.red)
                     .interpolationMethod(.catmullRom)
             }
+            .chartXScale(domain: chartMinuteDomain(detailed.heartRateSeries.map(\.minute)))
             .chartYScale(domain: domain)
             .chartPlotStyle { $0.clipped() }
             .chartXAxisLabel("分钟")
@@ -653,6 +655,12 @@ struct WorkoutDetailView: View {
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    /// 横轴贴合数据末点，避免 Charts 自动「好看刻度」把右侧拉出大片空白。
+    private func chartMinuteDomain(_ minutes: [Double]) -> ClosedRange<Double> {
+        let end = max(minutes.max() ?? 1, 1)
+        return 0...end
     }
 
     private var hrDomain: ClosedRange<Double> {
