@@ -167,8 +167,18 @@ struct WorkoutRecord: Identifiable {
     /// 是否为游泳
     var isSwimming: Bool { activityType == .swimming }
 
-    /// 是否含 GPS 轨迹
-    var hasRoute: Bool { !routeCoordinates.isEmpty }
+    /// 是否含 GPS 轨迹（至少 2 个点才画线）
+    var hasRoute: Bool { routeCoordinates.count >= 2 }
+
+    /// 运动时气温（摄氏度）
+    var weatherTemperatureC: Double?
+
+    /// 运动时相对湿度（0–100）
+    var weatherHumidityPercent: Double?
+
+    var hasWeatherInfo: Bool {
+        weatherTemperatureC != nil || weatherHumidityPercent != nil
+    }
 
     /// GPS 轨迹坐标（延迟加载，详情页进入时才填充）
     var routeCoordinates: [CLLocationCoordinate2D] = []

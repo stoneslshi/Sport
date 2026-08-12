@@ -630,6 +630,46 @@ final class HealthKitManager {
         var elevationSeries: [ElevationPoint] = []
     }
 
+    /// 运动环境：天气（来自 workout metadata）。
+    struct WorkoutContextPayload {
+        var weatherTemperatureC: Double?
+        var weatherHumidityPercent: Double?
+    }
+
+    /// 读取 workout metadata 中的室内外与天气。
+    func fetchWorkoutContext(for record: WorkoutRecord) async throws -> WorkoutContextPayload {
+        guard let workout = try await fetchWorkout(id: record.id) else { return WorkoutContextPayload() }
+        return parseWorkoutMetadata(from: workout)
+    }
+
+    private func parseWorkoutMetadata(from workout: HKWorkout) -> WorkoutContextPayload {
+        var payload = WorkoutContextPayload()
+        guard let metadata = workout.metadata else { return payload }
+
+        if let tempQ = metadata[HKMetadataKeyWeatherTemperature] as? HKQuantity {
+            payload.weatherTemperatureC = tempQ.doubleValue(for: .degreeCelsius())
+        }
+
+        if let humidQ = metadata[HKMetadataKeyWeatherHumidity] as? HKQuantity {
+            payload.weatherHumidityPercent = normalizedHumidityPercent(humidQ)
+        }
+
+        return payload
+    }
+
+    /// HealthKit 湿度偶发异常大值，归一化到 0–100。
+    private func normalizedHumidityPercent(_ quantity: HKQuantity) -> Double? {
+        var value = quantity.doubleValue(for: .percent())
+        if value <= 0 { return nil }
+        if value <= 1 { value *= 100 }
+        if value > 100 {
+            // 个别记录以 0–10000 刻度存储
+            if value <= 10_000 { value /= 100 }
+            else { return nil }
+        }
+        return min(100, max(0, value))
+    }
+
     /// 读取某次运动的 GPS 轨迹坐标（若有）。
     func fetchRoute(for record: WorkoutRecord) async throws -> [CLLocationCoordinate2D] {
         try await fetchRouteDetail(for: record).coordinates
@@ -703,7 +743,7 @@ final class HealthKitManager {
     // MARK: - 分段配速
 
     /// 计算真实分段配速。
-    /// - 跑步/骑行等：优先 GPS 轨迹，其次距离采样；每 1 km 一段。
+    /// - 跑步/骑行等：优先 GPS 轨迹；室内或无 GPS 时优先 workout 单段事件，其次距离采样；每 1 km 一段。
     /// - 游泳：每 100 m 一段；优先趟数事件（池长累加），其次距离采样 / GPS。
     func fetchSplits(for record: WorkoutRecord) async throws -> [KMSplit] {
         let segmentMeters: Double = record.isSwimming ? 100 : 1000
@@ -804,18 +844,178 @@ final class HealthKitManager {
         return splits
     }
 
+    private func expectedSplitCount(for record: WorkoutRecord, segmentMeters: Double) -> Int? {
+        guard segmentMeters > 0, let km = record.distanceKM, km > 0 else { return nil }
+        let count = Int((km * 1000 / segmentMeters).rounded(.down))
+        return count > 0 ? count : nil
+    }
+
+    private struct DistanceSamplePoint {
+        let start: Date
+        let end: Date
+        /// 该时刻累计距离（米）；序列样本在展开时已做 running sum。
+        let meters: Double
+    }
+
     /// 用距离采样序列切段（室内跑/无 GPS 时的兜底）。
     private func splitsFromDistanceSamples(record: WorkoutRecord,
                                            segmentMeters: Double) async throws -> [KMSplit]? {
+        guard let workout = try await fetchWorkout(id: record.id) else { return nil }
+        let points = try await fetchWorkoutDistancePoints(record: record, workout: workout)
+        guard !points.isEmpty else { return nil }
+
+        let totalMeters = (record.distanceKM ?? 0) * 1000
+        let expected = expectedSplitCount(for: record, segmentMeters: segmentMeters)
+        let maxPace = record.isSwimming ? 30.0 : 120.0
+
+        // 1) 累计距离序列：在曲线上找每公里穿越时刻（Apple Watch 室内跑常见）
+        if totalMeters > 0,
+           let fromCumulative = splitsFromCumulativeSeries(
+                points: points,
+                segStart: record.start,
+                segmentMeters: segmentMeters,
+                totalMeters: totalMeters,
+                maxPace: maxPace
+           ),
+           let expected,
+           fromCumulative.count == expected {
+            return fromCumulative
+        }
+
+        // 2) 增量序列：逐段累加距离
+        let increments = incrementalDistancePoints(from: points, totalMeters: totalMeters > 0 ? totalMeters : nil)
+        if let fromIncrements = splitsFromIncrementalSeries(
+            points: increments,
+            segStart: record.start,
+            segmentMeters: segmentMeters,
+            maxPace: maxPace
+        ),
+           let expected,
+           fromIncrements.count == expected {
+            return fromIncrements
+        }
+
+        // 3) 放宽：允许 ±1 段（末段不足 1km 时）
+        if totalMeters > 0,
+           let fromCumulative = splitsFromCumulativeSeries(
+                points: points,
+                segStart: record.start,
+                segmentMeters: segmentMeters,
+                totalMeters: totalMeters,
+                maxPace: maxPace
+           ), !fromCumulative.isEmpty {
+            return fromCumulative
+        }
+        if let fromIncrements = splitsFromIncrementalSeries(
+            points: increments,
+            segStart: record.start,
+            segmentMeters: segmentMeters,
+            maxPace: maxPace
+        ), !fromIncrements.isEmpty {
+            return fromIncrements
+        }
+        return nil
+    }
+
+    /// 累计型距离：对每个整公里阈值在采样区间内插值得穿越时刻，相邻时刻之差即单段用时。
+    private func splitsFromCumulativeSeries(points: [DistanceSamplePoint],
+                                            segStart: Date,
+                                            segmentMeters: Double,
+                                            totalMeters: Double,
+                                            maxPace: Double) -> [KMSplit]? {
+        let values = points.map(\.meters)
+        guard isCumulativeDistanceSeries(values: values, totalMeters: totalMeters) else { return nil }
+
+        let expected = max(1, Int((totalMeters / segmentMeters).rounded(.down)))
+        var crossingTimes: [Date] = []
+        var nextThreshold = segmentMeters
+        var prevValue = 0.0
+
+        for point in points {
+            let value = point.meters
+            let span = max(point.end.timeIntervalSince(point.start), 0.001)
+
+            while nextThreshold <= value + 0.5, nextThreshold <= totalMeters + 0.5 {
+                let range = value - prevValue
+                let frac = range > 0.01 ? (nextThreshold - prevValue) / range : 1
+                let cross = point.start.addingTimeInterval(span * min(max(frac, 0), 1))
+                crossingTimes.append(cross)
+                nextThreshold += segmentMeters
+            }
+            prevValue = value
+        }
+
+        guard crossingTimes.count >= expected else { return nil }
+
+        var splits: [KMSplit] = []
+        var segmentStart = segStart
+        let minPace = segmentMeters <= 100 ? 0.5 : 2.0
+        for (i, cross) in crossingTimes.prefix(expected).enumerated() {
+            let paceMin = cross.timeIntervalSince(segmentStart) / 60.0
+            guard paceMin >= minPace, paceMin <= maxPace else { return nil }
+            splits.append(KMSplit(index: i + 1, paceMin: paceMin, segmentMeters: segmentMeters))
+            segmentStart = cross
+        }
+        return splits.isEmpty ? nil : splits
+    }
+
+    /// 增量型距离：按段长累加，跨阈值时插值时间。
+    private func splitsFromIncrementalSeries(points: [DistanceSamplePoint],
+                                             segStart: Date,
+                                             segmentMeters: Double,
+                                             maxPace: Double) -> [KMSplit]? {
+        guard !points.isEmpty else { return nil }
+
+        var splits: [KMSplit] = []
+        var cumMeters = 0.0
+        var nextThreshold = segmentMeters
+        var segmentStart = segStart
+        var segIndex = 1
+        let minPace = segmentMeters <= 100 ? 0.5 : 2.0
+
+        for point in points {
+            guard point.meters > 0 else { continue }
+            let startCum = cumMeters
+            cumMeters += point.meters
+            let span = max(point.end.timeIntervalSince(point.start), 0.001)
+
+            while cumMeters + 0.01 >= nextThreshold {
+                let metersIntoSample = nextThreshold - startCum
+                let frac = min(max(metersIntoSample / point.meters, 0), 1)
+                let cross = point.start.addingTimeInterval(span * frac)
+                let paceMin = cross.timeIntervalSince(segmentStart) / 60.0
+                guard paceMin >= minPace, paceMin <= maxPace else { return nil }
+                splits.append(KMSplit(index: segIndex, paceMin: paceMin, segmentMeters: segmentMeters))
+                segIndex += 1
+                segmentStart = cross
+                nextThreshold += segmentMeters
+            }
+        }
+        return splits.isEmpty ? nil : splits
+    }
+
+    private func isCumulativeDistanceSeries(values: [Double], totalMeters: Double) -> Bool {
+        guard values.count >= 2, totalMeters > 0 else { return false }
+        let monotonic = zip(values.dropLast(), values.dropFirst()).allSatisfy { $0.1 >= $0.0 - 0.01 }
+        guard monotonic else { return false }
+        let last = values.last ?? 0
+        guard last >= totalMeters * 0.85, last <= totalMeters * 1.15 else { return false }
+        let sum = values.reduce(0, +)
+        return sum > totalMeters * 1.15
+    }
+
+    /// 读取与 workout 关联的距离采样；序列样本会展开为逐段增量。
+    private func fetchWorkoutDistancePoints(record: WorkoutRecord,
+                                            workout: HKWorkout) async throws -> [DistanceSamplePoint] {
         let typeId: HKQuantityTypeIdentifier
         switch record.activityType {
         case .swimming: typeId = .distanceSwimming
         case .cycling, .handCycling: typeId = .distanceCycling
         default: typeId = .distanceWalkingRunning
         }
-        guard let qtyType = HKQuantityType.quantityType(forIdentifier: typeId) else { return nil }
+        guard let qtyType = HKQuantityType.quantityType(forIdentifier: typeId) else { return [] }
 
-        let predicate = HKQuery.predicateForSamples(withStart: record.start, end: record.end, options: [])
+        let predicate = HKQuery.predicateForObjects(from: workout)
         let samples: [HKQuantitySample] = try await withCheckedThrowingContinuation { continuation in
             let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
             let query = HKSampleQuery(sampleType: qtyType, predicate: predicate,
@@ -825,37 +1025,81 @@ final class HealthKitManager {
             }
             store.execute(query)
         }
-        guard !samples.isEmpty else { return nil }
 
-        var splits: [KMSplit] = []
-        var cumMeters = 0.0
-        var nextThreshold = segmentMeters
-        var segStart = record.start
-        var segIndex = 1
-        let maxPace = record.isSwimming ? 30.0 : 120.0
-
-        for s in samples {
-            let meters = s.quantity.doubleValue(for: .meter())
-            guard meters > 0 else { continue }
-            let startCum = cumMeters
-            cumMeters += meters
-            let sampleStart = s.startDate
-            let dur = max(s.endDate.timeIntervalSince(sampleStart), 0.01)
-
-            while cumMeters + 0.01 >= nextThreshold {
-                let metersIntoSample = nextThreshold - startCum
-                let frac = min(max(metersIntoSample / meters, 0), 1)
-                let cross = sampleStart.addingTimeInterval(dur * frac)
-                let paceMin = cross.timeIntervalSince(segStart) / 60.0
-                if paceMin > 0, paceMin < maxPace {
-                    splits.append(KMSplit(index: segIndex, paceMin: paceMin, segmentMeters: segmentMeters))
-                }
-                segIndex += 1
-                segStart = cross
-                nextThreshold += segmentMeters
+        var points: [DistanceSamplePoint] = []
+        let unit = HKUnit.meter()
+        var runningCumulative = 0.0
+        for sample in samples {
+            if sample.count > 1 {
+                let series = try await expandDistanceSeries(sample: sample, unit: unit, baseCumulative: runningCumulative)
+                points.append(contentsOf: series)
+                runningCumulative = series.last?.meters ?? runningCumulative
+            } else {
+                let meters = sample.quantity.doubleValue(for: unit)
+                guard meters > 0 else { continue }
+                // 单点样本：严格递增视为累计打卡，否则视为增量
+                let cumulative = meters > runningCumulative ? meters : runningCumulative + meters
+                runningCumulative = cumulative
+                points.append(DistanceSamplePoint(start: sample.startDate, end: sample.endDate, meters: cumulative))
             }
         }
-        return splits
+        return points.sorted { $0.start < $1.start }
+    }
+
+    private func expandDistanceSeries(sample: HKQuantitySample,
+                                      unit: HKUnit,
+                                      baseCumulative: Double) async throws -> [DistanceSamplePoint] {
+        try await withCheckedThrowingContinuation { continuation in
+            var points: [DistanceSamplePoint] = []
+            var prevDate: Date?
+            var cumMeters = baseCumulative
+            let query = HKQuantitySeriesSampleQuery(sample: sample) { _, quantity, date, done, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                if let quantity, let date {
+                    let delta = quantity.doubleValue(for: unit)
+                    if delta > 0 {
+                        cumMeters += delta
+                        let start = prevDate ?? sample.startDate
+                        points.append(DistanceSamplePoint(start: start, end: date, meters: cumMeters))
+                        prevDate = date
+                    }
+                }
+                if done {
+                    continuation.resume(returning: points)
+                }
+            }
+            store.execute(query)
+        }
+    }
+
+    /// 将累计距离序列转为逐段增量。Apple Watch 室内跑常写入「到第 N 公里为止的总距离」，直接累加会得到双倍分段。
+    private func incrementalDistancePoints(from points: [DistanceSamplePoint],
+                                           totalMeters: Double?) -> [DistanceSamplePoint] {
+        guard points.count >= 2 else { return points }
+        let values = points.map(\.meters)
+        let monotonic = zip(values.dropLast(), values.dropFirst()).allSatisfy { $0.1 >= $0.0 - 0.01 }
+        guard monotonic else { return points }
+
+        let sum = values.reduce(0, +)
+        let last = values.last ?? 0
+        let total = max(totalMeters ?? last, last)
+        // 累计型：单调递增且总和明显大于总距离，末值接近总距离
+        let looksCumulative = sum > total * 1.15 && last >= total * 0.75 && last <= total * 1.15
+        guard looksCumulative else { return points }
+
+        var result: [DistanceSamplePoint] = []
+        var prev = 0.0
+        for point in points {
+            let delta = max(0, point.meters - prev)
+            if delta > 0.01 {
+                result.append(DistanceSamplePoint(start: point.start, end: point.end, meters: delta))
+            }
+            prev = point.meters
+        }
+        return result.isEmpty ? points : result
     }
 
     // MARK: - 游泳详情（趟明细 / 组 / 划次 / SWOLF / 泳姿）

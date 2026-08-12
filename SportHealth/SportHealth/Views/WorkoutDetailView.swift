@@ -41,6 +41,7 @@ struct WorkoutDetailView: View {
                 } else {
                     header
                     metricsGrid
+                    if detailed.hasWeatherInfo { weatherInfoCard }
                     if detailed.hasRoute { routeMapCard }
                     if showElevationCard { elevationCard }
                     if !detailed.heartRateSeries.isEmpty {
@@ -98,7 +99,8 @@ struct WorkoutDetailView: View {
             return detailed.swimLaps.isEmpty && detailed.heartRateSeries.isEmpty
                 && detailed.strokeDistribution.isEmpty && detailed.splits.isEmpty
         }
-        return !detailed.hasRoute && detailed.heartRateSeries.isEmpty && detailed.splits.isEmpty
+        return !detailed.hasRoute && !detailed.hasWeatherInfo
+            && detailed.heartRateSeries.isEmpty && detailed.splits.isEmpty
     }
 
     @MainActor
@@ -559,6 +561,38 @@ struct WorkoutDetailView: View {
         .buttonStyle(.plain)
     }
 
+    /// 气温 / 湿度（来自 HealthKit metadata，有则显示）
+    private var weatherInfoCard: some View {
+        HStack(spacing: 20) {
+            if let temp = detailed.weatherTemperatureC {
+                weatherChip(icon: "thermometer.medium", label: "气温", value: "\(Int(temp.rounded()))°")
+            }
+            if let humidity = detailed.weatherHumidityPercent {
+                weatherChip(icon: "humidity.fill", label: "湿度", value: "\(Int(humidity.rounded()))%")
+            }
+            Spacer(minLength: 0)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    private func weatherChip(icon: String, label: String, value: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundStyle(tint)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.headline.monospacedDigit())
+            }
+        }
+    }
+
     /// 有爬升元数据，或 GPS 海拔曲线有效时展示
     private var showElevationCard: Bool {
         guard detailed.elevationSeries.count >= 2 else { return false }
@@ -729,6 +763,7 @@ struct WorkoutDetailView: View {
 
     private var splitsCard: some View {
         let per100 = detailed.isSwimming || detailed.splits.first?.isPer100m == true
+        let maxPace = max(detailed.splits.map(\.paceMin).max() ?? 10, 1)
         return VStack(alignment: .leading, spacing: 10) {
             Label("分段配速", systemImage: "chart.bar.fill").font(.headline)
             Chart(detailed.splits) { s in
@@ -744,6 +779,7 @@ struct WorkoutDetailView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .chartXScale(domain: 0...(maxPace * 1.12))
             .chartXAxisLabel(per100 ? "分钟/100m" : "分钟/km")
             .frame(height: max(120, CGFloat(detailed.splits.count) * 34 + 30))
         }

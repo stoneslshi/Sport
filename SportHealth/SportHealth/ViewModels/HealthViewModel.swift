@@ -296,6 +296,11 @@ final class HealthViewModel {
         detailed.heartRateSeries = hrSeries ?? []
         detailed.routeCoordinates = routeDetail?.coordinates ?? []
         detailed.elevationSeries = routeDetail?.elevationSeries ?? []
+
+        if let context = try? await manager.fetchWorkoutContext(for: record) {
+            detailed.weatherTemperatureC = context.weatherTemperatureC
+            detailed.weatherHumidityPercent = context.weatherHumidityPercent
+        }
         if let swimDetail {
             detailed.laps = swimDetail.lapsCount
             detailed.strokeDistribution = swimDetail.strokes
