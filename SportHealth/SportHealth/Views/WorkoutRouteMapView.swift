@@ -12,7 +12,8 @@ private enum RouteMapFitting {
         edgePadding: UIEdgeInsets,
         animated: Bool = false
     ) {
-        guard coordinates.count > 1 else { return }
+        let coords = RouteGeometry.sanitized(coordinates)
+        guard !coords.isEmpty else { return }
         guard map.bounds.width > 10, map.bounds.height > 10 else { return }
 
         map.layoutMargins = .zero
@@ -20,37 +21,47 @@ private enum RouteMapFitting {
         map.directionalLayoutMargins = .zero
         map.isPitchEnabled = false
 
-        let polyline = MKPolyline(coordinates: coordinates, count: coordinates.count)
-        var rect = polyline.boundingMapRect
-        if rect.size.width < 50 || rect.size.height < 50 {
-            let pad = max(80.0, max(rect.size.width, rect.size.height) * 0.3)
-            rect = rect.insetBy(dx: -pad, dy: -pad)
+        var minLat = coords[0].latitude, maxLat = minLat
+        var minLon = coords[0].longitude, maxLon = minLon
+        for c in coords {
+            minLat = min(minLat, c.latitude)
+            maxLat = max(maxLat, c.latitude)
+            minLon = min(minLon, c.longitude)
+            maxLon = max(maxLon, c.longitude)
         }
 
-        // 先按「可用区域」宽高比对称扩展，避免 MapKit 扩 span 时往一侧偏
         let usableW = max(1, map.bounds.width - edgePadding.left - edgePadding.right)
         let usableH = max(1, map.bounds.height - edgePadding.top - edgePadding.bottom)
-        let viewRatio = usableW / usableH
-        let rectRatio = rect.size.width / max(rect.size.height, 1)
-        if rectRatio > viewRatio {
-            let newH = rect.size.width / viewRatio
-            rect = MKMapRect(
-                x: rect.origin.x,
-                y: rect.midY - newH / 2,
-                width: rect.size.width,
-                height: newH
-            )
-        } else {
-            let newW = rect.size.height * viewRatio
-            rect = MKMapRect(
-                x: rect.midX - newW / 2,
-                y: rect.origin.y,
-                width: newW,
-                height: rect.size.height
-            )
-        }
+        let viewAspect = usableW / usableH
+        let midLat = (minLat + maxLat) / 2
+        let cosLat = max(0.2, abs(cos(midLat * .pi / 180)))
 
-        map.setVisibleMapRect(rect, edgePadding: edgePadding, animated: animated)
+        var latDelta = max((maxLat - minLat) * 1.4, 0.003)
+        var lonDelta = max((maxLon - minLon) * 1.4, 0.003)
+        var latM = latDelta * 111_320
+        var lonM = lonDelta * 111_320 * cosLat
+        if lonM / latM < viewAspect {
+            lonM = latM * viewAspect
+        } else {
+            latM = lonM / viewAspect
+        }
+        latM *= map.bounds.height / usableH
+        lonM *= map.bounds.width / usableW
+        latDelta = min(latM / 111_320, 8)
+        lonDelta = min(lonM / (111_320 * cosLat), 8)
+
+        let yBias = (edgePadding.bottom - edgePadding.top) / (2 * map.bounds.height)
+        let center = CLLocationCoordinate2D(
+            latitude: midLat + latDelta * yBias,
+            longitude: (minLon + maxLon) / 2
+        )
+        map.setRegion(
+            MKCoordinateRegion(
+                center: center,
+                span: MKCoordinateSpan(latitudeDelta: latDelta, longitudeDelta: lonDelta)
+            ),
+            animated: animated
+        )
     }
 
     static func sizeChanged(_ a: CGSize, _ b: CGSize) -> Bool {
@@ -69,9 +80,9 @@ private enum RouteMapFitting {
         }
     }
 
-    /// 展示用坐标：大陆做 WGS→GCJ，与道路对齐。
+    /// 展示用坐标：去掉异常点后再做大陆 WGS→GCJ。
     static func displayCoordinates(_ coordinates: [CLLocationCoordinate2D]) -> [CLLocationCoordinate2D] {
-        ChinaCoordinateTransform.wgs84ToGcj02(coordinates)
+        ChinaCoordinateTransform.wgs84ToGcj02(RouteGeometry.sanitized(coordinates))
     }
 }
 
@@ -101,6 +112,29 @@ struct RouteSplitMarker: Identifiable {
 }
 
 enum RouteGeometry {
+    /// 去掉无效坐标与超大跳跃，避免包围盒被拉成全国。
+    static func sanitized(_ coordinates: [CLLocationCoordinate2D]) -> [CLLocationCoordinate2D] {
+        let valid = coordinates.filter(isPlausible)
+        guard valid.count >= 2 else { return valid }
+
+        var result: [CLLocationCoordinate2D] = [valid[0]]
+        result.reserveCapacity(valid.count)
+        for c in valid.dropFirst() {
+            let last = result[result.count - 1]
+            let d = CLLocation(latitude: last.latitude, longitude: last.longitude)
+                .distance(from: CLLocation(latitude: c.latitude, longitude: c.longitude))
+            if d > 30_000 { continue }
+            result.append(c)
+        }
+        return result.count >= 2 ? result : valid
+    }
+
+    private static func isPlausible(_ c: CLLocationCoordinate2D) -> Bool {
+        CLLocationCoordinate2DIsValid(c)
+            && c.latitude.isFinite && c.longitude.isFinite
+            && !(abs(c.latitude) < 0.2 && abs(c.longitude) < 0.2)
+    }
+
     /// 沿轨迹按固定距离切出分段点，并挂上对应配速（若有）。
     static func splitMarkers(
         coordinates: [CLLocationCoordinate2D],
@@ -624,6 +658,14 @@ final class SplitAnnotation: NSObject, MKAnnotation {
 
 // MARK: - 详情页缩略轨迹（静态）
 
+private final class LayoutAwareMapView: MKMapView {
+    var onLayout: (() -> Void)?
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        onLayout?()
+    }
+}
+
 struct RouteMapView: UIViewRepresentable {
     let coordinates: [CLLocationCoordinate2D]
     let tint: Color
@@ -633,18 +675,21 @@ struct RouteMapView: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> MKMapView {
-        let map = MKMapView()
+        let map = LayoutAwareMapView()
         map.delegate = context.coordinator
         RouteMapFitting.configureFlatMap(map)
         map.isRotateEnabled = false
         map.isScrollEnabled = false
         map.isZoomEnabled = false
+        map.onLayout = { [weak map, weak coordinator = context.coordinator] in
+            guard let map else { return }
+            coordinator?.refitFromLayout(on: map, edgePadding: edgePadding)
+        }
         return map
     }
 
     func updateUIView(_ map: MKMapView, context: Context) {
         context.coordinator.tint = UIColor(tint)
-        // 展示与 fit 必须用同一套坐标（GCJ），异步补 fit 时也不能传原始 WGS
         let display = RouteMapFitting.displayCoordinates(coordinates)
         context.coordinator.sync(
             on: map,
@@ -667,34 +712,43 @@ struct RouteMapView: UIViewRepresentable {
         var tint: UIColor = .systemOrange
         private var lastCoordCount = -1
         private var lastFitSize: CGSize = .zero
+        private var lastDisplay: [CLLocationCoordinate2D] = []
+        private var lastPadding: UIEdgeInsets = .zero
 
         func sync(on map: MKMapView, displayCoordinates display: [CLLocationCoordinate2D], edgePadding: UIEdgeInsets) {
-            guard display.count > 1 else {
+            lastDisplay = display
+            lastPadding = edgePadding
+            guard display.count >= 1 else {
                 map.removeOverlays(map.overlays)
                 map.removeAnnotations(map.annotations)
                 lastCoordCount = 0
                 return
             }
-            // 坐标未变时不要反复清图层（会抖）
             if display.count != lastCoordCount || map.overlays.isEmpty {
                 map.removeOverlays(map.overlays)
                 map.removeAnnotations(map.annotations)
 
-                let polyline = MKPolyline(coordinates: display, count: display.count)
-                map.addOverlay(polyline)
+                if display.count >= 2 {
+                    let polyline = MKPolyline(coordinates: display, count: display.count)
+                    map.addOverlay(polyline)
+                }
 
                 if let first = display.first {
                     let a = MKPointAnnotation(); a.coordinate = first; a.title = "起点"
                     map.addAnnotation(a)
                 }
-                if let last = display.last {
+                if display.count >= 2, let last = display.last {
                     let a = MKPointAnnotation(); a.coordinate = last; a.title = "终点"
                     map.addAnnotation(a)
                 }
                 lastCoordCount = display.count
-                lastFitSize = .zero // 强制重新 fit
+                lastFitSize = .zero
             }
             fitIfNeeded(on: map, coordinates: display, edgePadding: edgePadding, force: false)
+        }
+
+        func refitFromLayout(on map: MKMapView, edgePadding: UIEdgeInsets) {
+            fitIfNeeded(on: map, coordinates: lastDisplay, edgePadding: lastPadding, force: false)
         }
 
         func fitIfNeeded(
@@ -708,6 +762,10 @@ struct RouteMapView: UIViewRepresentable {
             if !force, !RouteMapFitting.sizeChanged(size, lastFitSize) { return }
             RouteMapFitting.fit(map, coordinates: coordinates, edgePadding: edgePadding, animated: false)
             lastFitSize = size
+        }
+
+        func mapViewDidFinishLoadingMap(_ mapView: MKMapView) {
+            fitIfNeeded(on: mapView, coordinates: lastDisplay, edgePadding: lastPadding, force: true)
         }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {

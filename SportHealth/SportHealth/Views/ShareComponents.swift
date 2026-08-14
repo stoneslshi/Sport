@@ -667,8 +667,9 @@ enum ShareCardRenderer {
                               size: CGSize = CGSize(width: SharePosterLayout.width,
                                                     height: SharePosterLayout.height)) async -> UIImage? {
         guard coordinates.count > 1 else { return nil }
-        // 与详情地图一致：大陆轨迹转 GCJ-02，避免分享海报相对道路偏左
-        let coordinates = ChinaCoordinateTransform.wgs84ToGcj02(coordinates)
+        // 与详情地图一致：去掉异常点后再转 GCJ-02
+        let coordinates = ChinaCoordinateTransform.wgs84ToGcj02(RouteGeometry.sanitized(coordinates))
+        guard coordinates.count > 1 else { return nil }
 
         var minLat = coordinates[0].latitude,  maxLat = coordinates[0].latitude
         var minLon = coordinates[0].longitude, maxLon = coordinates[0].longitude
