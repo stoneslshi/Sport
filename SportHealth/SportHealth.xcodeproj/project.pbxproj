@@ -8,10 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		A10000000000000000000017 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000016 /* Assets.xcassets */; };
+		A10000000000000000000019 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000018 /* LaunchScreen.storyboard */; };
 		C10000000000000000000001 /* SportHealthApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000001 /* SportHealthApp.swift */; };
 		C10000000000000000000002 /* HealthModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000002 /* HealthModels.swift */; };
 		C10000000000000000000003 /* InsightModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000003 /* InsightModels.swift */; };
-		C10000000000000000000014 /* SleepModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000014 /* SleepModels.swift */; };
 		C10000000000000000000004 /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000004 /* HealthKitManager.swift */; };
 		C10000000000000000000005 /* AnalysisEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005 /* AnalysisEngine.swift */; };
 		C10000000000000000000006 /* AIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000006 /* AIService.swift */; };
@@ -27,24 +27,25 @@
 		C10000000000000000000010 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000010 /* SettingsView.swift */; };
 		C10000000000000000000011 /* LLMProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000011 /* LLMProvider.swift */; };
 		C10000000000000000000012 /* WorkoutDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000012 /* WorkoutDetailView.swift */; };
+		C10000000000000000000013 /* MarkdownText.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000013 /* MarkdownText.swift */; };
+		C10000000000000000000014 /* SleepModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000014 /* SleepModels.swift */; };
+		C10000000000000000000015 /* ShareComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000015 /* ShareComponents.swift */; };
+		C10000000000000000000016 /* Brand.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000016 /* Brand.swift */; };
 		C10000000000000000000017 /* WorkoutRouteMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000017 /* WorkoutRouteMapView.swift */; };
 		C10000000000000000000018 /* WeeklyAdviceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000018 /* WeeklyAdviceModels.swift */; };
 		C10000000000000000000019 /* AdviceHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019 /* AdviceHistoryStore.swift */; };
-		C10000000000000000000013 /* MarkdownText.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000013 /* MarkdownText.swift */; };
-		C10000000000000000000015 /* ShareComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000015 /* ShareComponents.swift */; };
-		C10000000000000000000016 /* Brand.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000016 /* Brand.swift */; };
 		C1000000000000000000001A /* ChinaCoordinateTransform.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001A /* ChinaCoordinateTransform.swift */; };
-		A10000000000000000000019 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000018 /* LaunchScreen.storyboard */; };
+		C1000000000000000000001B /* WorkoutLocationsMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001B /* WorkoutLocationsMapView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		A10000000000000000000004 /* SportHealth.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SportHealth.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10000000000000000000015 /* SportHealth.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SportHealth.entitlements; sourceTree = "<group>"; };
 		A10000000000000000000016 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A10000000000000000000018 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		B10000000000000000000001 /* SportHealthApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SportHealthApp.swift; sourceTree = "<group>"; };
 		B10000000000000000000002 /* HealthModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthModels.swift; sourceTree = "<group>"; };
 		B10000000000000000000003 /* InsightModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightModels.swift; sourceTree = "<group>"; };
-		B10000000000000000000014 /* SleepModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepModels.swift; sourceTree = "<group>"; };
 		B10000000000000000000004 /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
 		B10000000000000000000005 /* AnalysisEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisEngine.swift; sourceTree = "<group>"; };
 		B10000000000000000000006 /* AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIService.swift; sourceTree = "<group>"; };
@@ -60,14 +61,15 @@
 		B10000000000000000000010 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		B10000000000000000000011 /* LLMProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMProvider.swift; sourceTree = "<group>"; };
 		B10000000000000000000012 /* WorkoutDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailView.swift; sourceTree = "<group>"; };
+		B10000000000000000000013 /* MarkdownText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownText.swift; sourceTree = "<group>"; };
+		B10000000000000000000014 /* SleepModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepModels.swift; sourceTree = "<group>"; };
+		B10000000000000000000015 /* ShareComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareComponents.swift; sourceTree = "<group>"; };
+		B10000000000000000000016 /* Brand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Brand.swift; sourceTree = "<group>"; };
 		B10000000000000000000017 /* WorkoutRouteMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRouteMapView.swift; sourceTree = "<group>"; };
 		B10000000000000000000018 /* WeeklyAdviceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyAdviceModels.swift; sourceTree = "<group>"; };
 		B10000000000000000000019 /* AdviceHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdviceHistoryStore.swift; sourceTree = "<group>"; };
-		B10000000000000000000013 /* MarkdownText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownText.swift; sourceTree = "<group>"; };
-		B10000000000000000000015 /* ShareComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareComponents.swift; sourceTree = "<group>"; };
-		B10000000000000000000016 /* Brand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Brand.swift; sourceTree = "<group>"; };
 		B1000000000000000000001A /* ChinaCoordinateTransform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChinaCoordinateTransform.swift; sourceTree = "<group>"; };
-		A10000000000000000000018 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		B1000000000000000000001B /* WorkoutLocationsMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLocationsMapView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -156,6 +158,7 @@
 				B10000000000000000000010 /* SettingsView.swift */,
 				B10000000000000000000012 /* WorkoutDetailView.swift */,
 				B10000000000000000000017 /* WorkoutRouteMapView.swift */,
+				B1000000000000000000001B /* WorkoutLocationsMapView.swift */,
 				B10000000000000000000013 /* MarkdownText.swift */,
 				B10000000000000000000015 /* ShareComponents.swift */,
 			);
@@ -270,6 +273,7 @@
 				C10000000000000000000015 /* ShareComponents.swift in Sources */,
 				C10000000000000000000016 /* Brand.swift in Sources */,
 				C1000000000000000000001A /* ChinaCoordinateTransform.swift in Sources */,
+				C1000000000000000000001B /* WorkoutLocationsMapView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

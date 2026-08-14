@@ -685,6 +685,46 @@ final class HealthKitManager {
         )
     }
 
+    /// 只取轨迹第一个点，供位置相簿聚合（避免拉完整路线）。
+    func fetchRouteStartCoordinate(for record: WorkoutRecord) async throws -> CLLocationCoordinate2D? {
+        guard let workout = try await fetchWorkout(id: record.id) else { return nil }
+
+        let routes: [HKWorkoutRoute] = try await withCheckedThrowingContinuation { continuation in
+            let predicate = HKQuery.predicateForObjects(from: workout)
+            let query = HKSampleQuery(sampleType: HKSeriesType.workoutRoute(),
+                                      predicate: predicate, limit: 1,
+                                      sortDescriptors: nil) { _, results, error in
+                if let error { continuation.resume(throwing: error); return }
+                continuation.resume(returning: (results as? [HKWorkoutRoute]) ?? [])
+            }
+            store.execute(query)
+        }
+        guard let route = routes.first else { return nil }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            var settled = false
+            let query = HKWorkoutRouteQuery(route: route) { query, locs, done, error in
+                guard !settled else { return }
+                if let error {
+                    settled = true
+                    continuation.resume(throwing: error)
+                    return
+                }
+                if let first = locs?.first {
+                    settled = true
+                    self.store.stop(query)
+                    continuation.resume(returning: first.coordinate)
+                    return
+                }
+                if done {
+                    settled = true
+                    continuation.resume(returning: nil)
+                }
+            }
+            store.execute(query)
+        }
+    }
+
     /// 由 GPS 点生成海拔曲线；过滤无效海拔，并适度下采样。
     private func elevationSeries(from locations: [CLLocation], workoutStart: Date) -> [ElevationPoint] {
         let valid = locations.filter { $0.verticalAccuracy >= 0 && $0.altitude.isFinite }

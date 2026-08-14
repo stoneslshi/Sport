@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import CoreLocation
 
 /// 全局数据中枢：负责拉取 HealthKit 数据、计算统计结果、调用大模型。
 @Observable
@@ -18,6 +19,10 @@ final class HealthViewModel {
     var previous7Days: [DailyActivity] = []
     var previous30Days: [DailyActivity] = []
     var workouts: [WorkoutRecord] = []
+    /// 已查过 GPS 起点的运动（无轨迹的记入 pinChecked，避免重复查询）
+    private var pinCoords: [UUID: CLLocationCoordinate2D] = [:]
+    private var pinChecked: Set<UUID> = []
+    var isLoadingPins = false
     var bodyProfile = BodyProfile()
     var heartMetrics = HeartMetrics()
     var bodyTrends = BodyTrends()
@@ -286,6 +291,47 @@ final class HealthViewModel {
         }
         return map.values.sorted {
             $0.count != $1.count ? $0.count > $1.count : $0.totalKcal > $1.totalKcal
+        }
+    }
+
+    /// 当前记录里已拿到 GPS 起点的户外运动钉。
+    func mapPins(for records: [WorkoutRecord]) -> [WorkoutMapPin] {
+        records.compactMap { record in
+            guard let coordinate = pinCoords[record.id] else { return nil }
+            return WorkoutMapPin(
+                id: record.id,
+                coordinate: coordinate,
+                activityType: record.activityType,
+                start: record.start
+            )
+        }
+    }
+
+    /// 批量补齐 GPS 起点；结果缓存，地图可边加载边出点。
+    func ensurePins(for records: [WorkoutRecord]) async {
+        let pending = records.filter { !pinChecked.contains($0.id) }
+        guard !pending.isEmpty else { return }
+        isLoadingPins = true
+        defer { isLoadingPins = false }
+
+        let batchSize = 5
+        var index = 0
+        while index < pending.count {
+            let end = min(index + batchSize, pending.count)
+            let batch = Array(pending[index..<end])
+            await withTaskGroup(of: (UUID, CLLocationCoordinate2D?).self) { group in
+                for record in batch {
+                    group.addTask {
+                        let coord = try? await HealthKitManager.shared.fetchRouteStartCoordinate(for: record)
+                        return (record.id, coord)
+                    }
+                }
+                for await (id, coord) in group {
+                    pinChecked.insert(id)
+                    if let coord { pinCoords[id] = coord }
+                }
+            }
+            index = end
         }
     }
 

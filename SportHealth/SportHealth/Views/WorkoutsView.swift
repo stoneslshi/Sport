@@ -71,6 +71,14 @@ struct WorkoutsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: range) { _, _ in selectedType = nil }
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    NavigationLink {
+                        WorkoutLocationsMapView(records: filtered, rangeLabel: range.rawValue)
+                    } label: {
+                        Image(systemName: "map")
+                    }
+                    .accessibilityLabel("运动地图")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         Task { await prepareShare() }

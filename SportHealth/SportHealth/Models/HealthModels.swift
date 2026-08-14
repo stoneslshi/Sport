@@ -206,6 +206,14 @@ struct WorkoutRecord: Identifiable {
     }
 }
 
+/// 户外运动在地图上的位置钉（用轨迹起点代表一次运动）。
+struct WorkoutMapPin: Identifiable {
+    let id: UUID
+    let coordinate: CLLocationCoordinate2D
+    let activityType: HKWorkoutActivityType
+    let start: Date
+}
+
 /// 游泳泳姿
 enum SwimStroke: String, CaseIterable, Identifiable {
     case freestyle   // 自由泳
