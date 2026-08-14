@@ -235,21 +235,26 @@ final class HealthViewModel {
     // MARK: 运动记录按时间范围筛选（步数展示 / 能量目标不涉及此处）
 
     enum WorkoutRange: String, CaseIterable, Identifiable {
-        case week = "近7天"
-        case month = "近1个月"
-        case year = "近1年"
+        case week = "本周"
+        case month = "本月"
+        case year = "本年"
         case custom = "自定义"
         var id: String { rawValue }
     }
 
     /// 按预置范围返回起始日期（自定义返回 nil，由调用方提供区间）。
+    /// 本周 = 周一至今天；本月 = 当月 1 日至今天；本年 = 1 月 1 日至今天。
     func startDate(for range: WorkoutRange, calendar: Calendar = .current) -> Date? {
-        let today = calendar.startOfDay(for: Date())
+        let now = Date()
         switch range {
-        case .week:  return calendar.date(byAdding: .day, value: -6, to: today)
-        case .month: return calendar.date(byAdding: .month, value: -1, to: today)
-        case .year:  return calendar.date(byAdding: .year, value: -1, to: today)
-        case .custom: return nil
+        case .week:
+            return CalendarWeekHelper.weekInterval(containing: now)?.start
+        case .month:
+            return calendar.dateInterval(of: .month, for: now)?.start
+        case .year:
+            return calendar.dateInterval(of: .year, for: now)?.start
+        case .custom:
+            return nil
         }
     }
 
@@ -356,7 +361,7 @@ final class HealthViewModel {
             async let recovery = manager.fetchRecoveryBaseline()
             // 14 晚以覆盖「上一自然周」睡眠切片；睡眠页仍用近 7 晚展示
             async let sleep = manager.fetchSleepNights(nights: 14)
-            // 加载近一年运动记录，供运动页「近7天/近1个月/近1年/自定义」范围筛选
+            // 加载近一年运动记录，供运动页「本周/本月/本年/自定义」范围筛选
             let yearAgo = Calendar.current.date(byAdding: .year, value: -1, to: Date())
             async let workoutList = manager.fetchWorkouts(from: yearAgo, to: Date())
 
