@@ -12,6 +12,7 @@ struct DailyActivity: Identifiable, Equatable {
     var exerciseMinutes: Double = 0
     var standMinutes: Double = 0
     var flightsClimbed: Double = 0
+    var source: HealthDataSource = .appleHealth
 
     var isToday: Bool { Calendar.current.isDateInToday(date) }
 }
@@ -133,6 +134,10 @@ struct WorkoutRecord: Identifiable {
     let durationMinutes: Double
     let caloriesKcal: Double
     let distanceKM: Double?
+    /// 数据来源（Apple 健康 / Garmin FIT 导入）
+    var source: HealthDataSource = .appleHealth
+    /// 原始来源名称，例如 "Apple Watch"、"Garmin FIT"
+    var sourceName: String? = nil
     /// 平均心率（次/分）
     var avgHR: Double?
     /// 最高心率（次/分）

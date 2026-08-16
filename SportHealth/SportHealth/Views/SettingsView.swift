@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @Environment(HealthViewModel.self) private var vm
@@ -11,6 +12,7 @@ struct SettingsView: View {
     @State private var customModel = ""
     @State private var apiKey = ""
     @State private var savedHint = false
+    @State private var showFITImporter = false
 
     private var provider: LLMProvider { LLMProvider.provider(id: providerID) }
 
@@ -32,6 +34,8 @@ struct SettingsView: View {
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
+
+                garminImportSection
 
                 Section("AI 服务商") {
                     Picker("服务商", selection: $providerID) {
@@ -82,7 +86,7 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Text("所有健康数据仅在本地处理；生成 AI 建议时只发送聚合统计摘要（不含姓名等可识别信息）。API Key 存储于系统钥匙串。")
+                    Text("所有健康数据仅在本地处理；生成 AI 建议时只发送聚合统计摘要（不含姓名等可识别信息）。API Key 存储于系统钥匙串。导入的 Garmin FIT 也只保存在本机。")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 } header: {
@@ -99,9 +103,55 @@ struct SettingsView: View {
                 }
             }
             .onAppear(perform: load)
+            .fileImporter(
+                isPresented: $showFITImporter,
+                allowedContentTypes: GarminFitImporter.allowedTypes,
+                allowsMultipleSelection: true
+            ) { result in
+                switch result {
+                case .success(let urls):
+                    Task { await vm.importFIT(from: urls) }
+                case .failure(let error):
+                    vm.fitImportMessage = error.localizedDescription
+                }
+            }
             .alert("已保存", isPresented: $savedHint) {
                 Button("好", role: .cancel) { dismiss() }
             }
+        }
+    }
+
+    private var garminImportSection: some View {
+        Section {
+            LabeledContent("已导入") {
+                Text("\(vm.importedWorkoutCount) 场").foregroundStyle(.secondary)
+            }
+            Button {
+                showFITImporter = true
+            } label: {
+                if vm.isImportingFIT {
+                    ProgressView()
+                } else {
+                    Label("选择 FIT / ZIP 文件", systemImage: "square.and.arrow.down")
+                }
+            }
+            .disabled(vm.isImportingFIT)
+
+            if let msg = vm.fitImportMessage, !msg.isEmpty {
+                Text(msg)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if vm.importedWorkoutCount > 0 {
+                Button("清除导入的 Garmin 记录", role: .destructive) {
+                    vm.clearImportedFIT()
+                }
+            }
+        } header: {
+            Text("Garmin FIT")
+        } footer: {
+            Text("在 Garmin 账号「数据管理」导出数据包，或从单场活动导出原始 FIT。可直接选外层 ZIP（含嵌套 UploadedFiles_*.zip）或多个 .fit 文件。解析只在本机完成。")
         }
     }
 
