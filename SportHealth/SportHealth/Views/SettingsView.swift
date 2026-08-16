@@ -123,6 +123,10 @@ struct SettingsView: View {
 
     private var garminImportSection: some View {
         Section {
+            Text("不需要 Garmin Connect 开发者账号，也不用填 Client ID / Secret。")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
             LabeledContent("已导入") {
                 Text("\(vm.importedWorkoutCount) 场").foregroundStyle(.secondary)
             }
@@ -130,9 +134,12 @@ struct SettingsView: View {
                 showFITImporter = true
             } label: {
                 if vm.isImportingFIT {
-                    ProgressView()
+                    HStack {
+                        ProgressView()
+                        Text("正在导入…")
+                    }
                 } else {
-                    Label("选择 FIT / ZIP 文件", systemImage: "square.and.arrow.down")
+                    Label("选择 FIT 或导出 ZIP", systemImage: "square.and.arrow.down")
                 }
             }
             .disabled(vm.isImportingFIT)
@@ -149,9 +156,9 @@ struct SettingsView: View {
                 }
             }
         } header: {
-            Text("Garmin FIT")
+            Text("导入 Garmin 文件")
         } footer: {
-            Text("在 Garmin 账号「数据管理」导出数据包，或从单场活动导出原始 FIT。可直接选外层 ZIP（含嵌套 UploadedFiles_*.zip）或多个 .fit 文件。解析只在本机完成。")
+            Text("Garmin 网页账号 → 数据管理 → 导出数据，下载 ZIP 后直接在这里选中即可（支持包里的嵌套 UploadedFiles_*.zip）。也可以从单场活动导出原始 .fit。全程本机解析，不会登录 Connect。")
         }
     }
 
