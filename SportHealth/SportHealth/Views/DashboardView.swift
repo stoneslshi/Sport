@@ -69,6 +69,17 @@ struct DashboardView: View {
     private var dashboardContent: some View {
         ScrollView {
             VStack(spacing: 16) {
+                #if DEBUG
+                if vm.isUsingDebugSampleData {
+                    Label("当前为本地调试示例数据，可在设置中关闭", systemImage: "hammer.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.secondary.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+                }
+                #endif
+
                 if let error = vm.errorMessage {
                     Label(error, systemImage: "exclamationmark.triangle.fill")
                         .font(.footnote)

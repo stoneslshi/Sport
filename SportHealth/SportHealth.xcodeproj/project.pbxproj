@@ -36,6 +36,7 @@
 		C10000000000000000000019 /* AdviceHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019 /* AdviceHistoryStore.swift */; };
 		C1000000000000000000001A /* ChinaCoordinateTransform.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001A /* ChinaCoordinateTransform.swift */; };
 		C1000000000000000000001B /* WorkoutLocationsMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001B /* WorkoutLocationsMapView.swift */; };
+		C1000000000000000000001C /* DebugSampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001C /* DebugSampleData.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -70,6 +71,7 @@
 		B10000000000000000000019 /* AdviceHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdviceHistoryStore.swift; sourceTree = "<group>"; };
 		B1000000000000000000001A /* ChinaCoordinateTransform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChinaCoordinateTransform.swift; sourceTree = "<group>"; };
 		B1000000000000000000001B /* WorkoutLocationsMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLocationsMapView.swift; sourceTree = "<group>"; };
+		B1000000000000000000001C /* DebugSampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugSampleData.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -172,6 +174,7 @@
 				B10000000000000000000008 /* Extensions.swift */,
 				B10000000000000000000016 /* Brand.swift */,
 				B1000000000000000000001A /* ChinaCoordinateTransform.swift */,
+				B1000000000000000000001C /* DebugSampleData.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -274,6 +277,7 @@
 				C10000000000000000000016 /* Brand.swift in Sources */,
 				C1000000000000000000001A /* ChinaCoordinateTransform.swift in Sources */,
 				C1000000000000000000001B /* WorkoutLocationsMapView.swift in Sources */,
+				C1000000000000000000001C /* DebugSampleData.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
