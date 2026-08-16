@@ -1,5 +1,6 @@
 import SwiftUI
 import HealthKit
+import UniformTypeIdentifiers
 
 struct WorkoutsView: View {
     @Environment(HealthViewModel.self) private var vm
@@ -11,6 +12,7 @@ struct WorkoutsView: View {
     /// 分享面板
     @State private var shareItem: ShareImageItem?
     @State private var isPreparingShare = false
+    @State private var showFITImporter = false
 
     // 当前生效的起止日期
     private var effectiveStart: Date {
@@ -51,7 +53,7 @@ struct WorkoutsView: View {
                             selectedType == nil ? "该时间段暂无运动记录" : "该时间段没有这类运动",
                             systemImage: selectedType?.symbolName ?? "figure.run",
                             description: Text(selectedType == nil
-                                              ? "换个时间范围，或去健康 App 记录一次锻炼。"
+                                              ? "换个时间范围，或在设置中导入 Garmin FIT。"
                                               : "点上方「全部」查看所有运动。"))
                             .padding(.top, 30)
                     } else {
@@ -70,6 +72,18 @@ struct WorkoutsView: View {
             .navigationTitle("运动记录")
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: range) { _, _ in selectedType = nil }
+            .fileImporter(
+                isPresented: $showFITImporter,
+                allowedContentTypes: GarminFitImporter.allowedTypes,
+                allowsMultipleSelection: true
+            ) { result in
+                switch result {
+                case .success(let urls):
+                    Task { await vm.importFIT(from: urls) }
+                case .failure(let error):
+                    vm.fitImportMessage = error.localizedDescription
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink {
@@ -78,6 +92,19 @@ struct WorkoutsView: View {
                         Image(systemName: "map")
                     }
                     .accessibilityLabel("运动地图")
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showFITImporter = true
+                    } label: {
+                        if vm.isImportingFIT {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "square.and.arrow.down")
+                        }
+                    }
+                    .disabled(vm.isImportingFIT)
+                    .accessibilityLabel("导入 Garmin FIT")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -301,7 +328,12 @@ struct WorkoutRow: View {
                 .frame(width: 44, height: 44)
                 .background(Color.orange.opacity(0.15), in: Circle())
             VStack(alignment: .leading, spacing: 3) {
-                Text(record.activityType.displayName).font(.subheadline.bold())
+                HStack(spacing: 6) {
+                    Text(record.activityType.displayName).font(.subheadline.bold())
+                    if record.source == .garmin {
+                        DataSourceBadge(source: record.source, name: "Garmin")
+                    }
+                }
                 Text(subtitle).font(.caption).foregroundStyle(.secondary)
             }
             Spacer()

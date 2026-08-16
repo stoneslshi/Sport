@@ -137,6 +137,9 @@ struct WorkoutDetailView: View {
                 .background(tint.opacity(0.15), in: Circle())
             Text(record.activityType.displayName).font(.title2.bold())
             Text(record.start.mdTimeCN).font(.subheadline).foregroundStyle(.secondary)
+            if record.source == .garmin {
+                DataSourceBadge(source: record.source, name: record.sourceName ?? "Garmin")
+            }
         }
         .frame(maxWidth: .infinity)
         .padding()
@@ -208,6 +211,9 @@ struct WorkoutDetailView: View {
                         }
                         if let laps = detailed.laps, laps > 0 {
                             Label("\(laps) 趟", systemImage: "arrow.left.arrow.right")
+                        }
+                        if record.source == .garmin {
+                            DataSourceBadge(source: record.source, name: "Garmin")
                         }
                     }
                     .font(.caption.weight(.medium))

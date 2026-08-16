@@ -43,6 +43,14 @@ final class HealthViewModel {
     /// 底部 Tab 选中项（概览 CTA / 提示可跳转）
     var selectedTab: AppTab = .home
 
+    var isImportingFIT = false
+    var fitImportMessage: String?
+    var importedWorkoutCount = 0
+
+    init() {
+        importedWorkoutCount = ImportedWorkoutStore.shared.count()
+    }
+
     /// 已自动触发过周报生成的 weekID（防止同周一重复请求）
     private var autoWeeklyKey: String {
         get { UserDefaults.standard.string(forKey: "autoWeeklyAdviceWeekID") ?? "" }
@@ -321,6 +329,11 @@ final class HealthViewModel {
             let batch = Array(pending[index..<end])
             await withTaskGroup(of: (UUID, CLLocationCoordinate2D?).self) { group in
                 for record in batch {
+                    if let coord = ImportedWorkoutStore.shared.startCoordinate(for: record.id) {
+                        pinChecked.insert(record.id)
+                        pinCoords[record.id] = coord
+                        continue
+                    }
                     group.addTask {
                         let coord = try? await HealthKitManager.shared.fetchRouteStartCoordinate(for: record)
                         return (record.id, coord)
@@ -337,6 +350,17 @@ final class HealthViewModel {
 
     /// 加载某次运动的详情（心率曲线 + GPS 轨迹 + 真实分段配速）。返回补全后的记录副本。
     func loadWorkoutDetail(_ record: WorkoutRecord) async -> WorkoutRecord {
+        if let imported = ImportedWorkoutStore.shared.workout(id: record.id) {
+            var detailed = imported.detailedRecord()
+            if !detailed.heartRateSeries.isEmpty {
+                detailed.hrZones = HealthKitManager.heartRateZones(
+                    from: detailed.heartRateSeries,
+                    maxHRHint: detailed.maxHR ?? record.maxHR,
+                    ageYears: bodyProfile.ageYears)
+            }
+            return detailed
+        }
+
         var detailed = record
         let manager = HealthKitManager.shared
         async let hr = try? manager.fetchHeartRateSeries(for: record)
@@ -390,6 +414,14 @@ final class HealthViewModel {
 
         let manager = HealthKitManager.shared
         guard manager.isHealthDataAvailable else {
+            let imported = ImportedWorkoutStore.shared.all().map { $0.asRecord() }
+            if !imported.isEmpty {
+                hasRequestedAuth = true
+                workouts = imported
+                importedWorkoutCount = imported.count
+                refreshWeeklyAdviceFromStore()
+                return
+            }
             errorMessage = "此设备不支持 Apple 健康。"
             return
         }
@@ -425,15 +457,44 @@ final class HealthViewModel {
             bodyTrends = tr
             recoveryBaseline = rec
             sleepNights = s
-            workouts = w
+            workouts = HealthDataMerger.mergeWorkouts(
+                healthKit: w,
+                imported: ImportedWorkoutStore.shared.all().map { $0.asRecord() }
+            )
+            importedWorkoutCount = ImportedWorkoutStore.shared.count()
             refreshWeeklyAdviceFromStore()
         } catch {
             errorMessage = "读取健康数据失败：\(error.localizedDescription)"
+            workouts = HealthDataMerger.mergeWorkouts(
+                healthKit: workouts,
+                imported: ImportedWorkoutStore.shared.all().map { $0.asRecord() }
+            )
+            importedWorkoutCount = ImportedWorkoutStore.shared.count()
         }
     }
 
     func refresh() async {
         await loadAll()
+    }
+
+    func importFIT(from urls: [URL]) async {
+        guard !isImportingFIT else { return }
+        isImportingFIT = true
+        fitImportMessage = "正在读取文件…"
+        defer { isImportingFIT = false }
+        let result = await GarminFitImporter.importItems(at: urls) { [weak self] text in
+            self?.fitImportMessage = text
+        }
+        importedWorkoutCount = ImportedWorkoutStore.shared.count()
+        fitImportMessage = result.summary
+        await loadAll()
+    }
+
+    func clearImportedFIT() {
+        ImportedWorkoutStore.shared.clear()
+        importedWorkoutCount = 0
+        fitImportMessage = "已清除导入的 Garmin 记录。"
+        Task { await loadAll() }
     }
 
     // MARK: 分享文案

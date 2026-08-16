@@ -55,7 +55,7 @@ struct DashboardView: View {
         ContentUnavailableView {
             Label("连接 Apple 健康", systemImage: "heart.text.square.fill")
         } description: {
-            Text("授权后，应用将读取您的运动与健康数据，在本地完成统计分析，并可结合大模型生成个性化建议。\n数据不会上传到任何服务器（AI 建议仅发送聚合统计摘要）。")
+            Text("授权后，应用将读取您的运动与健康数据，在本地完成统计分析，并可结合大模型生成个性化建议。\n数据不会上传到任何服务器（AI 建议仅发送聚合统计摘要）。也可在设置中导入 Garmin FIT。")
         } actions: {
             Button("授权并加载数据") {
                 Task { await vm.loadAll() }
@@ -554,7 +554,12 @@ struct TodayWorkoutRow: View {
                 .frame(width: 38, height: 38)
                 .background(tint.opacity(0.15), in: Circle())
             VStack(alignment: .leading, spacing: 2) {
-                Text(record.activityType.displayName).font(.subheadline.bold())
+                HStack(spacing: 6) {
+                    Text(record.activityType.displayName).font(.subheadline.bold())
+                    if record.source == .garmin {
+                        DataSourceBadge(source: record.source, name: "Garmin")
+                    }
+                }
                 Text(subtitle).font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
