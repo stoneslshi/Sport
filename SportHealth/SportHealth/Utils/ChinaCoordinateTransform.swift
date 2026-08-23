@@ -2,6 +2,7 @@ import CoreLocation
 
 /// HealthKit / GPS 为 WGS-84；大陆 MapKit（高德底图）按 GCJ-02 渲染。
 /// 不转换时轨迹形状正确，但相对道路常整体偏西（看起来「往左偏」）。
+/// 境外（含港澳台、新加坡、日韩等）底图为 WGS-84，不得套用 GCJ 偏移。
 enum ChinaCoordinateTransform {
     /// 将 WGS-84 点转为 MapKit 在大陆应使用的 GCJ-02；境外原样返回。
     static func wgs84ToGcj02(_ coordinate: CLLocationCoordinate2D) -> CLLocationCoordinate2D {
@@ -18,18 +19,39 @@ enum ChinaCoordinateTransform {
         return coordinates.map(wgs84ToGcj02)
     }
 
-    // MARK: - 区域判断（含港澳台近似排除）
+    // MARK: - 区域判断（含港澳台及周边国家排除）
 
+    /// 是否应按大陆 GCJ-02 偏移。
+    ///
+    /// 旧实现沿用 eviltransform 粗框（北纬 ≥ 0.8293、东经 72–138），
+    /// 新加坡（约 1.35°N, 103.8°E）会落在框内被错误加密，轨迹相对道路整体偏移。
+    /// 海南岛南端约 18.16°N，以此为南界即可排除新马泰等，同时保留三亚等海南轨迹。
     private static func isInMainlandChina(_ c: CLLocationCoordinate2D) -> Bool {
         let lat = c.latitude, lon = c.longitude
-        // 粗框
-        guard lat >= 0.8293, lat <= 55.8271, lon >= 72.004, lon <= 137.8347 else { return false }
+        // 大陆实际范围：乌恰以西约 73.5°E，抚远约 134.8°E，漠河约 53.5°N，海南约 18.1°N
+        guard lat >= 18.10, lat <= 53.56, lon >= 73.50, lon <= 135.05 else { return false }
+
         // 台湾
         if lat >= 21.1, lat <= 25.6, lon >= 119.3, lon <= 122.5 { return false }
         // 香港
         if lat >= 22.13, lat <= 22.58, lon >= 113.82, lon <= 114.5 { return false }
         // 澳门
         if lat >= 22.0, lat <= 22.25, lon >= 113.5, lon <= 113.65 { return false }
+
+        // 日本本州/九州/四国。珲春约 42.9°N、绥芬河约 44.4°N，纬度更高不会被裁。
+        if lat >= 24.0, lat <= 41.7, lon >= 128.8 { return false }
+        // 琉球 / 冲绳（台湾以东）
+        if lat >= 24.0, lat <= 28.5, lon >= 122.7, lon <= 131.5 { return false }
+
+        // 韩国（含济州）。丹东约 40.1°N, 124.4°E，不在此框。
+        if lat >= 33.0, lat <= 38.65, lon >= 124.5, lon <= 129.8 { return false }
+
+        // 越南北部（河内一带）。东兴约 21.55°N，海南经度 > 108.6，均避开。
+        if lat < 21.50, lon >= 102.2, lon <= 108.0 { return false }
+
+        // 菲律宾北部吕宋（南界抬到海南后仍可能落入粗框）
+        if lat <= 21.2, lon >= 116.0, lon <= 127.0 { return false }
+
         return true
     }
 
