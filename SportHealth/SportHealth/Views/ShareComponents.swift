@@ -100,6 +100,16 @@ private enum SharePosterLayout {
     static let height: CGFloat = 640
 }
 
+private extension View {
+    /// 导出位图必须铺满矩形且不透明。圆角 `clipShape` 会让四角变透明，微信/相册压成 JPEG 后露出白块。
+    func sharePosterCanvas() -> some View {
+        frame(width: SharePosterLayout.width, height: SharePosterLayout.height)
+            .background(Color.black)
+            .environment(\.colorScheme, .dark)
+            .ignoresSafeArea()
+    }
+}
+
 /// 轨迹海报：全幅地图底 + 一个主指标 + 短文案。
 struct RouteSharePoster: View {
     let record: WorkoutRecord
@@ -115,9 +125,10 @@ struct RouteSharePoster: View {
                 .clipped()
 
             LinearGradient(
-                colors: [.clear, .black.opacity(0.25), .black.opacity(0.82), .black.opacity(0.94)],
+                colors: [.clear, .black.opacity(0.25), .black.opacity(0.82), .black],
                 startPoint: .top, endPoint: .bottom
             )
+            .frame(width: SharePosterLayout.width, height: SharePosterLayout.height)
 
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
@@ -165,9 +176,8 @@ struct RouteSharePoster: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                 .padding(14)
         }
-        .frame(width: SharePosterLayout.width, height: SharePosterLayout.height)
         .foregroundStyle(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .sharePosterCanvas()
     }
 
     @ViewBuilder
@@ -272,8 +282,7 @@ struct MinimalSharePoster: View {
             }
             .padding(22)
         }
-        .frame(width: SharePosterLayout.width, height: SharePosterLayout.height)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .sharePosterCanvas()
     }
 
     /// 主指标：优先距离（游泳用米），否则配速，再否则消耗。
@@ -424,8 +433,7 @@ struct WeekSharePoster: View {
             }
             .padding(22)
         }
-        .frame(width: SharePosterLayout.width, height: SharePosterLayout.height)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .sharePosterCanvas()
     }
 
     private func typeRow(_ stat: WorkoutTypeStat) -> some View {
@@ -596,8 +604,7 @@ struct WeeklyAdviceSharePoster: View {
             }
             .padding(22)
         }
-        .frame(width: SharePosterLayout.width, height: SharePosterLayout.height)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .sharePosterCanvas()
     }
 
     private func shareMetric(_ value: String, _ label: String) -> some View {
@@ -644,9 +651,31 @@ enum ShareCardRenderer {
     /// 用 ImageRenderer 把 SwiftUI 视图渲染成高清 UIImage。
     @MainActor
     private static func render<V: View>(_ view: V) -> UIImage {
-        let renderer = ImageRenderer(content: view)
+        let content = view
+            .frame(width: SharePosterLayout.width, height: SharePosterLayout.height)
+            .background(Color.black)
+            .ignoresSafeArea()
+        let renderer = ImageRenderer(content: content)
         renderer.scale = UIScreen.main.scale
-        return renderer.uiImage ?? UIImage()
+        renderer.proposedSize = ProposedViewSize(
+            width: SharePosterLayout.width,
+            height: SharePosterLayout.height
+        )
+        guard let image = renderer.uiImage else { return UIImage() }
+        return flattenedOpaque(image)
+    }
+
+    /// 透明像素压到黑底，避免分享目标把透明边角变成白块。
+    private static func flattenedOpaque(_ image: UIImage) -> UIImage {
+        let format = UIGraphicsImageRendererFormat.default()
+        format.opaque = true
+        format.scale = image.scale
+        let size = image.size
+        return UIGraphicsImageRenderer(size: size, format: format).image { ctx in
+            UIColor.black.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }
     }
 
     /// 渲染单次运动分享图：有轨迹快照 → 轨迹海报；否则 → 极简大字。
@@ -708,9 +737,12 @@ enum ShareCardRenderer {
         guard let snapshot = try? await snapshotter.start() else { return nil }
 
         let img = snapshot.image
-        let renderer = UIGraphicsImageRenderer(size: img.size)
+        let format = UIGraphicsImageRendererFormat.default()
+        format.opaque = true
+        format.scale = img.scale
+        let renderer = UIGraphicsImageRenderer(size: img.size, format: format)
         let strokeColor = UIColor(tint)
-        return renderer.image { _ in
+        return renderer.image { ctx in
             img.draw(at: .zero)
 
             let path = UIBezierPath()
@@ -737,6 +769,26 @@ enum ShareCardRenderer {
             }
             if let first = coordinates.first { dot(first, color: .systemGreen) }
             if let last = coordinates.last  { dot(last,  color: .systemRed) }
+
+            // Cover MapKit baked-in Apple Maps / Legal chip so it doesn't show as a white corner block.
+            let mapSize = img.size
+            let fadeH = max(40, mapSize.height * 0.07)
+            let fadeRect = CGRect(x: 0, y: mapSize.height - fadeH, width: mapSize.width, height: fadeH)
+            let colors = [UIColor.clear.cgColor, UIColor.black.cgColor] as CFArray
+            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                                         colors: colors,
+                                         locations: [0, 1]) {
+                ctx.cgContext.saveGState()
+                ctx.cgContext.addRect(fadeRect)
+                ctx.cgContext.clip()
+                ctx.cgContext.drawLinearGradient(
+                    gradient,
+                    start: CGPoint(x: 0, y: fadeRect.minY),
+                    end: CGPoint(x: 0, y: fadeRect.maxY),
+                    options: []
+                )
+                ctx.cgContext.restoreGState()
+            }
         }
     }
 
