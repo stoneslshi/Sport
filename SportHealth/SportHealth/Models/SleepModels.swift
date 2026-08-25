@@ -44,10 +44,12 @@ struct SleepVitals: Equatable {
     var respiratoryRate: Double?
     /// 血氧饱和度 0–1（展示时 ×100）
     var oxygenSaturation: Double?
-    /// 腕温相对基线偏差（°C）；优先
+    /// 腕温相对个人基线的偏差（°C）；优先展示
     var wristTempDelta: Double?
-    /// 绝对体温兜底（°C）
+    /// 绝对温度（°C）：腕温历史不足 5 晚，或无腕温时的体温兜底
     var wristTempAbsolute: Double?
+    /// 绝对值为 Apple Watch 腕温且基线尚未建立
+    var wristTempNeedsBaseline: Bool = false
 
     var hasAny: Bool {
         respiratoryRate != nil || oxygenSaturation != nil

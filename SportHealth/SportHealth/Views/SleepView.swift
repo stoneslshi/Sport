@@ -209,24 +209,24 @@ struct SleepView: View {
                           unit: "%",
                           label: "血氧饱和度",
                           hint: v.oxygenSaturation != nil ? "均值" : nil)
-                if let delta = v.wristTempDelta {
+                if let delta = v.wristTempDelta, abs(delta) <= 5 {
                     vitalCell(icon: "thermometer.medium",
                               value: String(format: "%+.2f", delta),
                               unit: "°C",
                               label: "腕温变化",
                               hint: "相对基线")
-                } else if let abs = v.wristTempAbsolute {
+                } else if let absTemp = v.wristTempAbsolute ?? v.wristTempDelta {
                     vitalCell(icon: "thermometer.medium",
-                              value: String(format: "%.1f", abs),
+                              value: String(format: "%.1f", absTemp),
                               unit: "°C",
-                              label: "体温",
-                              hint: "绝对值")
+                              label: v.wristTempNeedsBaseline || v.wristTempDelta != nil ? "腕温" : "体温",
+                              hint: v.wristTempNeedsBaseline ? "绝对值 · 基线建立中" : "绝对值")
                 } else {
                     vitalCell(icon: "thermometer.medium",
                               value: nil, unit: "", label: "腕温变化", hint: nil)
                 }
             }
-            Text("需 Apple Watch 睡眠时佩戴并授权。腕温优先显示相对基线偏差。不构成医疗诊断。")
+            Text("需 Apple Watch 睡眠时佩戴并授权。腕温显示相对个人基线的偏差。不构成医疗诊断。")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }

@@ -238,33 +238,140 @@ final class HealthKitManager {
 
         var result = aggregateSleep(samples: samples, nights: nights)
 
+        let wristFrom = calendar.date(byAdding: .day, value: -WristTemp.lookbackDays,
+                                      to: calendar.startOfDay(for: now)) ?? start
+        async let wristSamples = fetchQuantitySamples(.appleSleepingWristTemperature,
+                                                      unit: WristTemp.celsius,
+                                                      from: wristFrom, to: now)
+
         // 为每一晚补生命体征（主睡眠窗内均值）
         for i in result.indices {
             result[i].vitals = await fetchSleepVitals(from: result[i].inBed, to: result[i].wake)
         }
+        if let samples = try? await wristSamples {
+            applyWristTemperature(samples: samples, to: &result)
+        }
         return result
     }
 
-    /// 主睡眠窗内的呼吸频率 / 血氧 / 腕温。
+    /// 主睡眠窗内的呼吸频率 / 血氧；体温仅作无腕温时的兜底。
+    /// 腕温由 `applyWristTemperature` 单独处理：HealthKit 存的是整夜绝对值，需相对基线后才展示偏差。
     func fetchSleepVitals(from start: Date, to end: Date) async -> SleepVitals {
         var vitals = SleepVitals()
         async let resp = averageQuantity(.respiratoryRate,
                                          unit: HKUnit.count().unitDivided(by: .minute()),
                                          from: start, to: end)
         async let spo2 = averageQuantity(.oxygenSaturation, unit: .percent(), from: start, to: end)
-        async let wrist = averageQuantity(.appleSleepingWristTemperature,
-                                          unit: .degreeCelsius(), from: start, to: end)
         async let body = averageQuantity(.bodyTemperature,
                                          unit: .degreeCelsius(), from: start, to: end)
         vitals.respiratoryRate = try? await resp
         vitals.oxygenSaturation = try? await spo2
-        // appleSleepingWristTemperature 本身就是相对基线的偏差（°C）
-        if let delta = try? await wrist {
-            vitals.wristTempDelta = delta
-        } else if let absTemp = try? await body {
+        if let absTemp = try? await body {
             vitals.wristTempAbsolute = absTemp
         }
         return vitals
+    }
+
+    /// Apple Watch 腕温：样本为整夜绝对值（约 32–36°C），系统健康 App 再减个人基线后展示。
+    private enum WristTemp {
+        static let celsius = HKUnit.degreeCelsius()
+        /// 腕部皮肤温度生理区间；落在此区间视为绝对值，否则视为已是偏差
+        static let absoluteRange = 20.0...45.0
+        /// 对齐系统健康 App：约 5 晚建立基线
+        static let baselineMinNights = 5
+        static let lookbackDays = 60
+        /// 偏差超过此阈值视为计算异常，回退到绝对值
+        static let maxPlausibleDelta = 5.0
+    }
+
+    private func isAbsoluteWristTemperature(_ celsius: Double) -> Bool {
+        WristTemp.absoluteRange.contains(celsius)
+    }
+
+    /// 按起床日把腕温样本聚成每晚一个值。
+    private func nightlyWristTemperatures(from samples: [HKQuantitySample]) -> [Date: Double] {
+        var grouped: [Date: [Double]] = [:]
+        for s in samples {
+            let value = s.quantity.doubleValue(for: WristTemp.celsius)
+            guard isAbsoluteWristTemperature(value) else { continue }
+            grouped[attributionDay(for: s.endDate), default: []].append(value)
+        }
+        return grouped.mapValues { $0.reduce(0, +) / Double($0.count) }
+    }
+
+    private func median(_ values: [Double]) -> Double? {
+        guard !values.isEmpty else { return nil }
+        let sorted = values.sorted()
+        let mid = sorted.count / 2
+        if sorted.count.isMultiple(of: 2) {
+            return (sorted[mid - 1] + sorted[mid]) / 2
+        }
+        return sorted[mid]
+    }
+
+    /// 睡眠窗与样本时间重叠时取均值，并返回用到的归属日（从基线池里剔除）。
+    private func overlappingWristValue(night: SleepNight,
+                                       samples: [HKQuantitySample]) -> (value: Double, days: Set<Date>)? {
+        let pad: TimeInterval = 2 * 3600
+        let lo = night.inBed.addingTimeInterval(-pad)
+        let hi = night.wake.addingTimeInterval(pad)
+        var values: [Double] = []
+        var days: Set<Date> = []
+        for s in samples {
+            guard s.startDate < hi, s.endDate > lo else { continue }
+            let value = s.quantity.doubleValue(for: WristTemp.celsius)
+            guard isAbsoluteWristTemperature(value) else { continue }
+            values.append(value)
+            days.insert(attributionDay(for: s.endDate))
+        }
+        guard !values.isEmpty else { return nil }
+        return (values.reduce(0, +) / Double(values.count), days)
+    }
+
+    private func applyWristTemperature(samples: [HKQuantitySample], to nights: inout [SleepNight]) {
+        let nightly = nightlyWristTemperatures(from: samples)
+        var alreadyDelta: [Date: Double] = [:]
+        for s in samples {
+            let value = s.quantity.doubleValue(for: WristTemp.celsius)
+            if !isAbsoluteWristTemperature(value) {
+                alreadyDelta[attributionDay(for: s.endDate)] = value
+            }
+        }
+
+        for i in nights.indices {
+            let day = nights[i].date
+            if let delta = alreadyDelta[day], abs(delta) <= WristTemp.maxPlausibleDelta {
+                nights[i].vitals.wristTempDelta = delta
+                nights[i].vitals.wristTempAbsolute = nil
+                nights[i].vitals.wristTempNeedsBaseline = false
+                continue
+            }
+
+            let matched: (value: Double, exclude: Set<Date>)?
+            if let value = nightly[day] {
+                matched = (value, [day])
+            } else if let overlap = overlappingWristValue(night: nights[i], samples: samples) {
+                matched = (overlap.value, overlap.days)
+            } else {
+                matched = nil
+            }
+            guard let match = matched else { continue }
+
+            let others = nightly.filter { !match.exclude.contains($0.key) }.map(\.value)
+            if others.count >= WristTemp.baselineMinNights,
+               let baseline = median(others) {
+                let delta = match.value - baseline
+                if abs(delta) <= WristTemp.maxPlausibleDelta {
+                    nights[i].vitals.wristTempDelta = delta
+                    nights[i].vitals.wristTempAbsolute = nil
+                    nights[i].vitals.wristTempNeedsBaseline = false
+                    continue
+                }
+            }
+            nights[i].vitals.wristTempAbsolute = match.value
+            nights[i].vitals.wristTempDelta = nil
+            nights[i].vitals.wristTempNeedsBaseline = true
+        }
     }
 
     /// 把睡眠分段样本按「起床日」归组并累计各阶段时长。
