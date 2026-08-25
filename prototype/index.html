@@ -124,10 +124,24 @@
   .wk .wcal span{font-size:11px;color:var(--sub);}
 
   /* 身体数据 */
-  .body-hero{display:flex;gap:14px;margin-bottom:14px;}
-  .body-hero .bx{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;text-align:center;}
-  .body-hero .bx b{font-size:26px;font-weight:800;}
-  .body-hero .bx span{font-size:12px;color:var(--sub);display:block;margin-top:4px;}
+  .body-hero{display:flex;gap:8px;margin-bottom:14px;}
+  .body-hero .bx{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:12px 8px 10px;text-align:center;}
+  .body-hero .bx b{font-size:24px;font-weight:800;}
+  .body-hero .bx span{font-size:11px;color:var(--sub);display:block;margin-top:4px;}
+  .range{margin-top:10px;}
+  .range-track{position:relative;height:5px;background:rgba(255,255,255,.08);border-radius:99px;}
+  .range-band{position:absolute;top:0;height:100%;background:rgba(52,199,89,.5);border-radius:99px;}
+  .range-dot{position:absolute;top:50%;width:9px;height:9px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);box-shadow:0 0 0 2px var(--panel);}
+  .range-cap{font-size:10px;color:var(--sub);margin-top:6px;line-height:1.3;font-variant-numeric:tabular-nums;}
+  .body-hero .bx .range-dot{box-shadow:0 0 0 2px var(--panel);}
+  .recover-grid .r .range,.meta-box .m .range{margin-top:8px;}
+  .recover-grid .r .range-dot{box-shadow:0 0 0 2px var(--panel2);}
+  .meta-box .m .range-dot{box-shadow:0 0 0 2px var(--panel2);}
+  .range-legend{display:flex;align-items:center;gap:14px;font-size:10px;color:var(--sub);margin-top:10px;}
+  .range-legend span{display:flex;align-items:center;gap:6px;}
+  .range-legend .lg-band{width:16px;height:5px;border-radius:99px;background:rgba(52,199,89,.5);}
+  .range-legend .lg-dot{width:8px;height:8px;border-radius:50%;background:#fff;}
+  .range-track i{font-style:normal;}
   .body-verdict{margin-top:0;padding:12px 14px;border-radius:12px;background:rgba(10,132,255,.1);border:1px solid rgba(10,132,255,.22);font-size:13px;line-height:1.55;color:#9ec9ff;margin-bottom:14px;}
   .body-verdict b{color:#fff;}
   .delta-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;}
@@ -608,11 +622,46 @@
             BMI 正常 · 体脂适中 · 静息心率优秀 → <b>当前适合维持训练强度</b>，继续规律有氧即可。
           </div>
           <div class="body-hero" style="margin:0;">
-            <div class="bx"><b style="color:var(--green)">22.3</b><span>BMI · 正常</span></div>
-            <div class="bx"><b style="color:var(--blue)">68.5</b><span>体重 kg</span></div>
-            <div class="bx"><b style="color:var(--purple)">16.8%</b><span>体脂率</span></div>
+            <div class="bx">
+              <b style="color:var(--green)">22.3</b>
+              <span>BMI · 正常</span>
+              <div class="range">
+                <div class="range-track">
+                  <i class="range-band" style="left:20.6%;width:31.8%"></i>
+                  <i class="range-dot" style="left:42.9%"></i>
+                </div>
+                <div class="range-cap">参考 18.5–23.9</div>
+              </div>
+            </div>
+            <div class="bx">
+              <b style="color:var(--blue)">68.5</b>
+              <span>体重 kg</span>
+              <div class="range">
+                <div class="range-track">
+                  <i class="range-band" style="left:16.8%;width:41.3%"></i>
+                  <i class="range-dot" style="left:46.3%"></i>
+                </div>
+                <div class="range-cap">按身高 57–73</div>
+              </div>
+            </div>
+            <div class="bx">
+              <b style="color:var(--purple)">16.8%</b>
+              <span>体脂率</span>
+              <div class="range">
+                <div class="range-track">
+                  <i class="range-band" style="left:15.4%;width:38.5%"></i>
+                  <i class="range-dot" style="left:41.5%"></i>
+                </div>
+                <div class="range-cap">男性适中 10–20%</div>
+              </div>
+            </div>
+          </div>
+          <div class="range-legend">
+            <span><i class="lg-band"></i> 参考区间</span>
+            <span><i class="lg-dot"></i> 当前值</span>
           </div>
         </div>
+
 
         <!-- 体重·体脂趋势 -->
         <div class="card">
@@ -638,16 +687,37 @@
               <div class="vv" style="color:var(--green)">58</div>
               <div class="lb">静息心率</div>
               <div class="hint">↓3 · 优秀</div>
+              <div class="range">
+                <div class="range-track">
+                  <i class="range-band" style="left:16.7%;width:33.3%"></i>
+                  <i class="range-dot" style="left:30%"></i>
+                </div>
+                <div class="range-cap">参考 50–70</div>
+              </div>
             </div>
             <div class="r">
               <div class="vv" style="color:var(--blue)">48</div>
               <div class="lb">HRV ms</div>
-              <div class="hint">偏高 · 恢复好</div>
+              <div class="hint">较好 · 恢复好</div>
+              <div class="range">
+                <div class="range-track">
+                  <i class="range-band" style="left:33.3%;width:50%"></i>
+                  <i class="range-dot" style="left:46.7%"></i>
+                </div>
+                <div class="range-cap">较好 40–70</div>
+              </div>
             </div>
             <div class="r">
               <div class="vv">72</div>
               <div class="lb">7日均心率</div>
               <div class="hint">次/分</div>
+              <div class="range">
+                <div class="range-track">
+                  <i class="range-band" style="left:20%;width:50%"></i>
+                  <i class="range-dot" style="left:44%"></i>
+                </div>
+                <div class="range-cap">日常 60–85</div>
+              </div>
             </div>
           </div>
           <div class="tip" style="margin-top:10px;border-top:1px solid var(--line);padding-top:12px;">
@@ -664,11 +734,25 @@
               <div class="lb">基础代谢 BMR</div>
               <div class="vv">1,612 <small style="font-size:12px;font-weight:600;color:var(--sub)">kcal/天</small></div>
               <div class="sub">Mifflin-St Jeor</div>
+              <div class="range">
+                <div class="range-track">
+                  <i class="range-band" style="left:37.5%;width:31.3%"></i>
+                  <i class="range-dot" style="left:51.5%"></i>
+                </div>
+                <div class="range-cap">同条件约 1,500–1,750</div>
+              </div>
             </div>
             <div class="m">
               <div class="lb">估算消耗 TDEE</div>
               <div class="vv">2,257 <small style="font-size:12px;font-weight:600;color:var(--sub)">kcal/天</small></div>
               <div class="sub">按近7日活动水平 ×1.4</div>
+              <div class="range">
+                <div class="range-track">
+                  <i class="range-band" style="left:41.7%;width:33.3%"></i>
+                  <i class="range-dot" style="left:54.8%"></i>
+                </div>
+                <div class="range-cap">轻度活动 2,100–2,500</div>
+              </div>
             </div>
           </div>
           <div class="tip" style="margin-top:10px;border-top:1px solid var(--line);padding-top:12px;">
@@ -683,6 +767,13 @@
           <div style="display:flex;align-items:baseline;gap:8px;">
             <div style="font-size:32px;font-weight:800;color:var(--green)">42.6</div>
             <div class="muted">mL/kg·min · 高于同龄平均</div>
+          </div>
+          <div class="range" style="margin-top:12px;">
+            <div class="range-track" style="height:6px;">
+              <i class="range-band" style="left:56.7%;width:14.7%"></i>
+              <i class="range-dot" style="left:58.7%"></i>
+            </div>
+            <div class="range-cap">男性 20–29 岁良好 42–46</div>
           </div>
           <div class="muted" style="font-size:12px;margin-top:8px;line-height:1.5;">来自 Apple Watch 心肺适能估算。无数据时整卡隐藏。</div>
         </div>
@@ -708,7 +799,7 @@
           </div>
         </div>
 
-        <div class="muted" style="font-size:11px;line-height:1.5;padding:0 4px 8px;">身体数据来自 Apple 健康，仅供运动参考，不构成医疗诊断。请在健康 App 或设备中维护身高、体重、体脂等信息。</div>
+        <div class="muted" style="font-size:11px;line-height:1.5;padding:0 4px 8px;">身体数据来自 Apple 健康。绿段为成年人运动常用参考区间（随性别、年龄、身高调整），仅供参考，不构成医疗诊断。请在健康 App 或设备中维护身高、体重、体脂等信息。</div>
       </div>
 
       <!-- ============ 建议 ============ -->

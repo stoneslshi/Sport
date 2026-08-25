@@ -56,10 +56,162 @@ struct BodyProfile {
 
     /// 估算基础代谢率（Mifflin-St Jeor 公式）
     var estimatedBMR: Double? {
+        BodyMetricRanges.bmrValue(weightKG: weightKG, heightCM: heightCM, ageYears: ageYears, sex: biologicalSex)
+    }
+}
+
+/// 身体指标的参考区间（绿段）与刻度范围（整条轨道）。
+struct BodyMetricRange: Equatable {
+    var scale: ClosedRange<Double>
+    var band: ClosedRange<Double>
+    var caption: String
+
+    /// 在参考段两侧留空，并把当前值包进刻度，避免白点贴边。
+    static func paddedScale(around band: ClosedRange<Double>,
+                            value: Double?,
+                            extra: Double = 0.5) -> ClosedRange<Double> {
+        let span = max(band.upperBound - band.lowerBound, 1)
+        var lo = band.lowerBound - span * extra
+        var hi = band.upperBound + span * extra
+        if let value {
+            let pad = span * 0.12
+            lo = min(lo, value - pad)
+            hi = max(hi, value + pad)
+        }
+        return lo...hi
+    }
+}
+
+/// 身体页参考区间口径。随性别 / 年龄 / 身高调整；仅供运动参考。
+enum BodyMetricRanges {
+    static let bmiBand = 18.5...23.9
+    static let restingHRBand = 50.0...70.0
+    static let hrvBand = 40.0...70.0
+    static let avgHRBand = 60.0...85.0
+
+    static func bmrValue(weightKG: Double?, heightCM: Double?, ageYears: Int?, sex: String?) -> Double? {
         guard let w = weightKG, let h = heightCM, let age = ageYears else { return nil }
         let base = 10 * w + 6.25 * h - 5 * Double(age)
-        if biologicalSex == "女" { return base - 161 }
-        return base + 5
+        return sex == "女" ? base - 161 : base + 5
+    }
+
+    static func bmi(value: Double?) -> BodyMetricRange {
+        BodyMetricRange(
+            scale: BodyMetricRange.paddedScale(around: bmiBand, value: value, extra: 0.7),
+            band: bmiBand,
+            caption: "参考 18.5–23.9"
+        )
+    }
+
+    static func weight(heightCM: Double?, value: Double?) -> BodyMetricRange? {
+        guard let h = heightCM, h > 0 else { return nil }
+        let m = h / 100
+        let lo = 18.5 * m * m
+        let hi = 23.9 * m * m
+        let band = lo...hi
+        return BodyMetricRange(
+            scale: BodyMetricRange.paddedScale(around: band, value: value),
+            band: band,
+            caption: String(format: "按身高 %.0f–%.0f", lo, hi)
+        )
+    }
+
+    static func bodyFat(sex: String?, value: Double?) -> BodyMetricRange {
+        let female = sex == "女"
+        let band: ClosedRange<Double> = female ? 21.0...33.0 : 10.0...20.0
+        let caption = female ? "女性适中 21–33%" : (sex == "男" ? "男性适中 10–20%" : "适中 10–20%")
+        return BodyMetricRange(
+            scale: BodyMetricRange.paddedScale(around: band, value: value, extra: 0.55),
+            band: band,
+            caption: caption
+        )
+    }
+
+    static func restingHR(value: Double?) -> BodyMetricRange {
+        BodyMetricRange(
+            scale: BodyMetricRange.paddedScale(around: restingHRBand, value: value, extra: 0.7),
+            band: restingHRBand,
+            caption: "参考 50–70"
+        )
+    }
+
+    static func hrv(value: Double?) -> BodyMetricRange {
+        BodyMetricRange(
+            scale: BodyMetricRange.paddedScale(around: hrvBand, value: value, extra: 0.55),
+            band: hrvBand,
+            caption: "较好 40–70"
+        )
+    }
+
+    static func averageHR(value: Double?) -> BodyMetricRange {
+        BodyMetricRange(
+            scale: BodyMetricRange.paddedScale(around: avgHRBand, value: value, extra: 0.55),
+            band: avgHRBand,
+            caption: "日常 60–85"
+        )
+    }
+
+    static func bmr(body: BodyProfile, value: Double?) -> BodyMetricRange? {
+        guard let h = body.heightCM, h > 0, let age = body.ageYears else { return nil }
+        let m = h / 100
+        let wLo = 18.5 * m * m
+        let wHi = 23.9 * m * m
+        guard let lo = bmrValue(weightKG: wLo, heightCM: h, ageYears: age, sex: body.biologicalSex),
+              let hi = bmrValue(weightKG: wHi, heightCM: h, ageYears: age, sex: body.biologicalSex) else { return nil }
+        let band = min(lo, hi)...max(lo, hi)
+        return BodyMetricRange(
+            scale: BodyMetricRange.paddedScale(around: band, value: value, extra: 0.7),
+            band: band,
+            caption: "同条件约 \(Int(band.lowerBound.rounded()).grouped)–\(Int(band.upperBound.rounded()).grouped)"
+        )
+    }
+
+    static func tdee(bmr: Double?, value: Double?) -> BodyMetricRange? {
+        guard let bmr, bmr > 0 else { return nil }
+        let band = (bmr * 1.375)...(bmr * 1.55)
+        let scaleLo = min(bmr * 1.2, value ?? bmr * 1.2)
+        let scaleHi = max(bmr * 1.725, value ?? bmr * 1.725)
+        return BodyMetricRange(
+            scale: scaleLo...scaleHi,
+            band: band,
+            caption: "轻度–中度 \(Int(band.lowerBound.rounded()).grouped)–\(Int(band.upperBound.rounded()).grouped)"
+        )
+    }
+
+    static func vo2(sex: String?, age: Int?, value: Double?) -> BodyMetricRange {
+        let female = sex == "女"
+        let years = age ?? 25
+        let band: ClosedRange<Double>
+        let bracket: String
+        switch years {
+        case ..<30:
+            band = female ? 36.0...40.0 : 42.0...46.0
+            bracket = "20–29 岁"
+        case ..<40:
+            band = female ? 34.0...37.0 : 40.0...45.0
+            bracket = "30–39 岁"
+        case ..<50:
+            band = female ? 32.0...35.0 : 37.0...41.0
+            bracket = "40–49 岁"
+        case ..<60:
+            band = female ? 29.0...32.0 : 34.0...38.0
+            bracket = "50–59 岁"
+        default:
+            band = female ? 26.0...29.0 : 31.0...35.0
+            bracket = "60 岁以上"
+        }
+        let who: String
+        if sex == "女" { who = "女性" }
+        else if sex == "男" { who = "男性" }
+        else { who = "成人" }
+        let caption = age == nil
+            ? "成人良好 \(Int(band.lowerBound))–\(Int(band.upperBound))"
+            : "\(who) \(bracket)良好 \(Int(band.lowerBound))–\(Int(band.upperBound))"
+        return BodyMetricRange(
+            scale: BodyMetricRange.paddedScale(around: band, value: value, extra: 2.2),
+            band: band,
+            caption: caption
+        )
     }
 }
 
