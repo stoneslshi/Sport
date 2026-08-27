@@ -892,11 +892,15 @@ final class HealthKitManager {
     /// 计算真实分段配速。
     /// - 跑步/骑行等：优先 GPS 轨迹；室内或无 GPS 时优先 workout 单段事件，其次距离采样；每 1 km 一段。
     /// - 游泳：每 100 m 一段；优先趟数事件（池长累加），其次距离采样 / GPS。
+    /// 单段用时只计移动时间，暂停 / 自动暂停不计入配速。
     func fetchSplits(for record: WorkoutRecord) async throws -> [KMSplit] {
         let segmentMeters: Double = record.isSwimming ? 100 : 1000
+        let workout = try await fetchWorkout(id: record.id)
+        let pauses = workout.map { pauseIntervals(from: $0) } ?? []
 
-        if record.isSwimming {
-            if let fromLaps = try await splitsFromSwimLaps(record: record, segmentMeters: segmentMeters),
+        if record.isSwimming, let workout {
+            if let fromLaps = splitsFromSwimLaps(record: record, workout: workout,
+                                                 segmentMeters: segmentMeters, pauses: pauses),
                !fromLaps.isEmpty {
                 return fromLaps
             }
@@ -904,56 +908,140 @@ final class HealthKitManager {
 
         let locations = try await fetchRouteLocations(for: record)
         if locations.count >= 2 {
-            let fromRoute = splitsFromLocations(locations, segmentMeters: segmentMeters)
+            let fromRoute = splitsFromLocations(locations, segmentMeters: segmentMeters, pauses: pauses)
             if !fromRoute.isEmpty { return fromRoute }
         }
 
-        if let fromDistance = try await splitsFromDistanceSamples(record: record, segmentMeters: segmentMeters),
+        if let fromDistance = try await splitsFromDistanceSamples(record: record,
+                                                                  segmentMeters: segmentMeters,
+                                                                  pauses: pauses),
            !fromDistance.isEmpty {
             return fromDistance
         }
         return []
     }
 
-    /// 由 GPS 点按累计距离切段，跨段边界时按比例插值时间。
-    private func splitsFromLocations(_ locations: [CLLocation], segmentMeters: Double) -> [KMSplit] {
+    /// 手动暂停、自动暂停，以及相邻 workout activity 之间的空隙。
+    private func pauseIntervals(from workout: HKWorkout) -> [DateInterval] {
+        var raw: [DateInterval] = []
+        let events = (workout.workoutEvents ?? [])
+            .sorted { $0.dateInterval.start < $1.dateInterval.start }
+        var openPause: Date?
+
+        for event in events {
+            switch event.type {
+            case .pause, .motionPaused:
+                if event.dateInterval.duration > 1 {
+                    raw.append(event.dateInterval)
+                    openPause = nil
+                } else {
+                    openPause = event.dateInterval.start
+                }
+            case .resume, .motionResumed:
+                if let start = openPause, event.dateInterval.start > start {
+                    raw.append(DateInterval(start: start, end: event.dateInterval.start))
+                }
+                openPause = nil
+            default:
+                break
+            }
+        }
+        if let start = openPause, workout.endDate > start {
+            raw.append(DateInterval(start: start, end: workout.endDate))
+        }
+
+        let activities = workout.workoutActivities.sorted { $0.startDate < $1.startDate }
+        if activities.count >= 2 {
+            for i in 1..<activities.count {
+                let prev = activities[i - 1]
+                let prevEnd = prev.endDate ?? prev.startDate.addingTimeInterval(max(prev.duration, 0))
+                let nextStart = activities[i].startDate
+                if nextStart.timeIntervalSince(prevEnd) > 1 {
+                    raw.append(DateInterval(start: prevEnd, end: nextStart))
+                }
+            }
+        }
+
+        return mergedIntervals(raw)
+    }
+
+    private func mergedIntervals(_ intervals: [DateInterval]) -> [DateInterval] {
+        let sorted = intervals.filter { $0.duration > 0 }.sorted { $0.start < $1.start }
+        var merged: [DateInterval] = []
+        for iv in sorted {
+            if let last = merged.last, last.end >= iv.start {
+                merged[merged.count - 1] = DateInterval(start: last.start, end: max(last.end, iv.end))
+            } else {
+                merged.append(iv)
+            }
+        }
+        return merged
+    }
+
+    /// 墙钟区间扣除暂停后的移动时长。
+    private func activeDuration(from start: Date, to end: Date, pauses: [DateInterval]) -> TimeInterval {
+        let wall = end.timeIntervalSince(start)
+        guard wall > 0 else { return 0 }
+        guard !pauses.isEmpty else { return wall }
+        let window = DateInterval(start: start, end: end)
+        var paused: TimeInterval = 0
+        for pause in pauses {
+            if let overlap = window.intersection(with: pause) {
+                paused += overlap.duration
+            }
+        }
+        return max(wall - paused, 0)
+    }
+
+    /// 由 GPS 点按累计距离切段；跨段时按移动时长比例分摊，暂停不计入配速。
+    private func splitsFromLocations(_ locations: [CLLocation],
+                                     segmentMeters: Double,
+                                     pauses: [DateInterval]) -> [KMSplit] {
         guard locations.count >= 2, segmentMeters > 0 else { return [] }
         var splits: [KMSplit] = []
         var segIndex = 1
         var distInSeg = 0.0
-        var segStart = locations[0].timestamp
+        var movingSec = 0.0
 
         for i in 1..<locations.count {
             let prev = locations[i - 1]
             let curr = locations[i]
             let edgeDist = curr.distance(from: prev)
-            let edgeDuration = curr.timestamp.timeIntervalSince(prev.timestamp)
-            guard edgeDist > 0, edgeDuration > 0 else { continue }
+            let wall = curr.timestamp.timeIntervalSince(prev.timestamp)
+            guard edgeDist > 0, wall > 0 else { continue }
 
-            var remaining = edgeDist
-            var consumedOnEdge = 0.0
+            var remainingDist = edgeDist
+            var remainingSec = activeDuration(from: prev.timestamp, to: curr.timestamp, pauses: pauses)
+            // 无暂停事件时，长时间几乎不动的边视为停留
+            if remainingSec > 8, edgeDist / remainingSec < 0.3 {
+                remainingSec = 0
+            }
 
-            while distInSeg + remaining >= segmentMeters {
+            while distInSeg + remainingDist >= segmentMeters, remainingDist > 0 {
                 let need = segmentMeters - distInSeg
-                consumedOnEdge += need
-                let cross = prev.timestamp.addingTimeInterval(edgeDuration * (consumedOnEdge / edgeDist))
-                let paceMin = cross.timeIntervalSince(segStart) / 60.0
+                let frac = need / remainingDist
+                movingSec += remainingSec * frac
+                let paceMin = movingSec / 60.0
                 if paceMin > 0, paceMin < 120 {
                     splits.append(KMSplit(index: segIndex, paceMin: paceMin, segmentMeters: segmentMeters))
                 }
                 segIndex += 1
-                remaining -= need
+                remainingDist -= need
+                remainingSec *= (1 - frac)
                 distInSeg = 0
-                segStart = cross
+                movingSec = 0
             }
-            distInSeg += remaining
+            distInSeg += remainingDist
+            movingSec += remainingSec
         }
         return splits
     }
 
     /// 游泳：用 lap 事件 + 池长累加出每 100m 配速。
-    private func splitsFromSwimLaps(record: WorkoutRecord, segmentMeters: Double) async throws -> [KMSplit]? {
-        guard let workout = try await fetchWorkout(id: record.id) else { return nil }
+    private func splitsFromSwimLaps(record: WorkoutRecord,
+                                    workout: HKWorkout,
+                                    segmentMeters: Double,
+                                    pauses: [DateInterval]) -> [KMSplit]? {
         let poolLen = record.poolLength
             ?? (workout.metadata?[HKMetadataKeyLapLength] as? HKQuantity)?.doubleValue(for: .meter())
         guard let poolLen, poolLen > 0 else { return nil }
@@ -979,7 +1067,7 @@ final class HealthKitManager {
                 let metersIntoLap = nextThreshold - startCum
                 let frac = min(max(metersIntoLap / poolLen, 0), 1)
                 let cross = lapStart.addingTimeInterval(lapDur * frac)
-                let paceMin = cross.timeIntervalSince(segStart) / 60.0
+                let paceMin = activeDuration(from: segStart, to: cross, pauses: pauses) / 60.0
                 if paceMin > 0, paceMin < 30 {
                     splits.append(KMSplit(index: segIndex, paceMin: paceMin, segmentMeters: segmentMeters))
                 }
@@ -1006,7 +1094,8 @@ final class HealthKitManager {
 
     /// 用距离采样序列切段（室内跑/无 GPS 时的兜底）。
     private func splitsFromDistanceSamples(record: WorkoutRecord,
-                                           segmentMeters: Double) async throws -> [KMSplit]? {
+                                           segmentMeters: Double,
+                                           pauses: [DateInterval]) async throws -> [KMSplit]? {
         guard let workout = try await fetchWorkout(id: record.id) else { return nil }
         let points = try await fetchWorkoutDistancePoints(record: record, workout: workout)
         guard !points.isEmpty else { return nil }
@@ -1022,7 +1111,8 @@ final class HealthKitManager {
                 segStart: record.start,
                 segmentMeters: segmentMeters,
                 totalMeters: totalMeters,
-                maxPace: maxPace
+                maxPace: maxPace,
+                pauses: pauses
            ),
            let expected,
            fromCumulative.count == expected {
@@ -1035,7 +1125,8 @@ final class HealthKitManager {
             points: increments,
             segStart: record.start,
             segmentMeters: segmentMeters,
-            maxPace: maxPace
+            maxPace: maxPace,
+            pauses: pauses
         ),
            let expected,
            fromIncrements.count == expected {
@@ -1049,7 +1140,8 @@ final class HealthKitManager {
                 segStart: record.start,
                 segmentMeters: segmentMeters,
                 totalMeters: totalMeters,
-                maxPace: maxPace
+                maxPace: maxPace,
+                pauses: pauses
            ), !fromCumulative.isEmpty {
             return fromCumulative
         }
@@ -1057,19 +1149,21 @@ final class HealthKitManager {
             points: increments,
             segStart: record.start,
             segmentMeters: segmentMeters,
-            maxPace: maxPace
+            maxPace: maxPace,
+            pauses: pauses
         ), !fromIncrements.isEmpty {
             return fromIncrements
         }
         return nil
     }
 
-    /// 累计型距离：对每个整公里阈值在采样区间内插值得穿越时刻，相邻时刻之差即单段用时。
+    /// 累计型距离：对每个整公里阈值在采样区间内插值得穿越时刻；配速用扣除暂停后的移动时长。
     private func splitsFromCumulativeSeries(points: [DistanceSamplePoint],
                                             segStart: Date,
                                             segmentMeters: Double,
                                             totalMeters: Double,
-                                            maxPace: Double) -> [KMSplit]? {
+                                            maxPace: Double,
+                                            pauses: [DateInterval]) -> [KMSplit]? {
         let values = points.map(\.meters)
         guard isCumulativeDistanceSeries(values: values, totalMeters: totalMeters) else { return nil }
 
@@ -1098,7 +1192,7 @@ final class HealthKitManager {
         var segmentStart = segStart
         let minPace = segmentMeters <= 100 ? 0.5 : 2.0
         for (i, cross) in crossingTimes.prefix(expected).enumerated() {
-            let paceMin = cross.timeIntervalSince(segmentStart) / 60.0
+            let paceMin = activeDuration(from: segmentStart, to: cross, pauses: pauses) / 60.0
             guard paceMin >= minPace, paceMin <= maxPace else { return nil }
             splits.append(KMSplit(index: i + 1, paceMin: paceMin, segmentMeters: segmentMeters))
             segmentStart = cross
@@ -1106,11 +1200,12 @@ final class HealthKitManager {
         return splits.isEmpty ? nil : splits
     }
 
-    /// 增量型距离：按段长累加，跨阈值时插值时间。
+    /// 增量型距离：按段长累加，跨阈值时插值时间；配速扣除暂停。
     private func splitsFromIncrementalSeries(points: [DistanceSamplePoint],
                                              segStart: Date,
                                              segmentMeters: Double,
-                                             maxPace: Double) -> [KMSplit]? {
+                                             maxPace: Double,
+                                             pauses: [DateInterval]) -> [KMSplit]? {
         guard !points.isEmpty else { return nil }
 
         var splits: [KMSplit] = []
@@ -1130,7 +1225,7 @@ final class HealthKitManager {
                 let metersIntoSample = nextThreshold - startCum
                 let frac = min(max(metersIntoSample / point.meters, 0), 1)
                 let cross = point.start.addingTimeInterval(span * frac)
-                let paceMin = cross.timeIntervalSince(segmentStart) / 60.0
+                let paceMin = activeDuration(from: segmentStart, to: cross, pauses: pauses) / 60.0
                 guard paceMin >= minPace, paceMin <= maxPace else { return nil }
                 splits.append(KMSplit(index: segIndex, paceMin: paceMin, segmentMeters: segmentMeters))
                 segIndex += 1
