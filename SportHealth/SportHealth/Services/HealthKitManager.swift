@@ -672,6 +672,7 @@ final class HealthKitManager {
                 poolLength = lapQ.doubleValue(for: .meter())
             }
 
+            let source = sourceInfo(for: workout)
             return WorkoutRecord(
                 id: workout.uuid,
                 activityType: workout.workoutActivityType,
@@ -680,6 +681,8 @@ final class HealthKitManager {
                 durationMinutes: workout.duration / 60,
                 caloriesKcal: energy,
                 distanceKM: distanceMeters.map { $0 / 1000 },
+                source: source.source,
+                sourceName: source.name,
                 avgHR: avgHR,
                 maxHR: maxHR,
                 elevationGain: elevation,
@@ -1819,5 +1822,12 @@ final class HealthKitManager {
             }
             store.execute(query)
         }
+    }
+
+    private func sourceInfo(for object: HKObject?) -> (source: HealthDataSource, name: String?) {
+        guard let object else { return (.appleHealth, nil) }
+        let name = object.sourceRevision.source.name
+        let bundle = object.sourceRevision.source.bundleIdentifier
+        return (HealthDataSource.from(name: name, bundle: bundle), name)
     }
 }

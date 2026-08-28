@@ -36,6 +36,13 @@
 		C10000000000000000000019 /* AdviceHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019 /* AdviceHistoryStore.swift */; };
 		C1000000000000000000001A /* ChinaCoordinateTransform.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001A /* ChinaCoordinateTransform.swift */; };
 		C1000000000000000000001B /* WorkoutLocationsMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001B /* WorkoutLocationsMapView.swift */; };
+		C1000000000000000000001C /* HealthDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001C /* HealthDataSource.swift */; };
+		C1000000000000000000001D /* FITParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001D /* FITParser.swift */; };
+		C1000000000000000000001E /* ZipArchiveReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001E /* ZipArchiveReader.swift */; };
+		C1000000000000000000001F /* ImportedWorkoutStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001F /* ImportedWorkoutStore.swift */; };
+		C10000000000000000000020 /* GarminFitImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000020 /* GarminFitImporter.swift */; };
+		C10000000000000000000021 /* HealthDataMerger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000021 /* HealthDataMerger.swift */; };
+		A10000000000000000000031 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = A10000000000000000000030 /* libz.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -70,6 +77,14 @@
 		B10000000000000000000019 /* AdviceHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdviceHistoryStore.swift; sourceTree = "<group>"; };
 		B1000000000000000000001A /* ChinaCoordinateTransform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChinaCoordinateTransform.swift; sourceTree = "<group>"; };
 		B1000000000000000000001B /* WorkoutLocationsMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLocationsMapView.swift; sourceTree = "<group>"; };
+		B1000000000000000000001C /* HealthDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthDataSource.swift; sourceTree = "<group>"; };
+		B1000000000000000000001D /* FITParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FITParser.swift; sourceTree = "<group>"; };
+		B1000000000000000000001E /* ZipArchiveReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZipArchiveReader.swift; sourceTree = "<group>"; };
+		B1000000000000000000001F /* ImportedWorkoutStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportedWorkoutStore.swift; sourceTree = "<group>"; };
+		B10000000000000000000020 /* GarminFitImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GarminFitImporter.swift; sourceTree = "<group>"; };
+		B10000000000000000000021 /* HealthDataMerger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthDataMerger.swift; sourceTree = "<group>"; };
+		A10000000000000000000030 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
+		B10000000000000000000023 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -77,6 +92,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A10000000000000000000031 /* libz.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -87,6 +103,7 @@
 			isa = PBXGroup;
 			children = (
 				A1000000000000000000000F /* SportHealth */,
+				A10000000000000000000032 /* Frameworks */,
 				A10000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -97,6 +114,14 @@
 				A10000000000000000000004 /* SportHealth.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000032 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000030 /* libz.tbd */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		A1000000000000000000000F /* SportHealth */ = {
@@ -111,6 +136,7 @@
 				A10000000000000000000016 /* Assets.xcassets */,
 				A10000000000000000000018 /* LaunchScreen.storyboard */,
 				A10000000000000000000015 /* SportHealth.entitlements */,
+				B10000000000000000000023 /* Info.plist */,
 			);
 			path = SportHealth;
 			sourceTree = "<group>";
@@ -119,6 +145,7 @@
 			isa = PBXGroup;
 			children = (
 				B10000000000000000000002 /* HealthModels.swift */,
+				B1000000000000000000001C /* HealthDataSource.swift */,
 				B10000000000000000000003 /* InsightModels.swift */,
 				B10000000000000000000014 /* SleepModels.swift */,
 				B10000000000000000000018 /* WeeklyAdviceModels.swift */,
@@ -131,6 +158,11 @@
 			isa = PBXGroup;
 			children = (
 				B10000000000000000000004 /* HealthKitManager.swift */,
+				B1000000000000000000001D /* FITParser.swift */,
+				B1000000000000000000001E /* ZipArchiveReader.swift */,
+				B1000000000000000000001F /* ImportedWorkoutStore.swift */,
+				B10000000000000000000020 /* GarminFitImporter.swift */,
+				B10000000000000000000021 /* HealthDataMerger.swift */,
 				B10000000000000000000005 /* AnalysisEngine.swift */,
 				B10000000000000000000006 /* AIService.swift */,
 				B10000000000000000000019 /* AdviceHistoryStore.swift */,
@@ -274,6 +306,12 @@
 				C10000000000000000000016 /* Brand.swift in Sources */,
 				C1000000000000000000001A /* ChinaCoordinateTransform.swift in Sources */,
 				C1000000000000000000001B /* WorkoutLocationsMapView.swift in Sources */,
+				C1000000000000000000001C /* HealthDataSource.swift in Sources */,
+				C1000000000000000000001D /* FITParser.swift in Sources */,
+				C1000000000000000000001E /* ZipArchiveReader.swift in Sources */,
+				C1000000000000000000001F /* ImportedWorkoutStore.swift in Sources */,
+				C10000000000000000000020 /* GarminFitImporter.swift in Sources */,
+				C10000000000000000000021 /* HealthDataMerger.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -411,6 +449,7 @@
 				DEVELOPMENT_TEAM = 6P4KARSH3X;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SportHealth/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "燃知";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "需要读取您的运动与健康数据，用于统计分析并生成个性化建议。";
@@ -445,6 +484,7 @@
 				DEVELOPMENT_TEAM = 6P4KARSH3X;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SportHealth/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "燃知";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "需要读取您的运动与健康数据，用于统计分析并生成个性化建议。";
