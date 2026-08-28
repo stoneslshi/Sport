@@ -88,6 +88,22 @@ struct SettingsView: View {
                 } header: {
                     Text("隐私说明")
                 }
+
+                #if DEBUG
+                Section {
+                    Toggle("使用示例数据", isOn: Binding(
+                        get: { vm.useDebugSampleData },
+                        set: { newValue in
+                            vm.useDebugSampleData = newValue
+                            Task { await vm.refresh() }
+                        }
+                    ))
+                } header: {
+                    Text("本地调试")
+                } footer: {
+                    Text("模拟器首次启动默认开启，便于无 HealthKit 数据时预览五 Tab 与运动详情。真机 Debug 默认关闭；关闭后读取真实 Apple 健康数据。此开关仅 Debug 包可见。")
+                }
+                #endif
             }
             .navigationTitle("设置")
             .toolbar {

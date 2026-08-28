@@ -43,6 +43,27 @@ final class HealthViewModel {
     /// 底部 Tab 选中项（概览 CTA / 提示可跳转）
     var selectedTab: AppTab = .home
 
+    #if DEBUG
+    /// 当前界面是否正在展示 Debug 示例数据（模拟器默认开启）。
+    var isUsingDebugSampleData = false
+    private var debugDetails: [UUID: WorkoutRecord] = [:]
+
+    /// 设置页开关：模拟器首次启动默认开；真机 Debug 默认关。
+    var useDebugSampleData: Bool {
+        get {
+            if UserDefaults.standard.object(forKey: "useDebugSampleData") == nil {
+                #if targetEnvironment(simulator)
+                return true
+                #else
+                return false
+                #endif
+            }
+            return UserDefaults.standard.bool(forKey: "useDebugSampleData")
+        }
+        set { UserDefaults.standard.set(newValue, forKey: "useDebugSampleData") }
+    }
+    #endif
+
     /// 已自动触发过周报生成的 weekID（防止同周一重复请求）
     private var autoWeeklyKey: String {
         get { UserDefaults.standard.string(forKey: "autoWeeklyAdviceWeekID") ?? "" }
@@ -309,6 +330,9 @@ final class HealthViewModel {
 
     /// 批量补齐 GPS 起点；结果缓存，地图可边加载边出点。
     func ensurePins(for records: [WorkoutRecord]) async {
+        #if DEBUG
+        if isUsingDebugSampleData { return }
+        #endif
         let pending = records.filter { !pinChecked.contains($0.id) }
         guard !pending.isEmpty else { return }
         isLoadingPins = true
@@ -337,6 +361,11 @@ final class HealthViewModel {
 
     /// 加载某次运动的详情（心率曲线 + GPS 轨迹 + 真实分段配速）。返回补全后的记录副本。
     func loadWorkoutDetail(_ record: WorkoutRecord) async -> WorkoutRecord {
+        #if DEBUG
+        if isUsingDebugSampleData, let sample = debugDetails[record.id] {
+            return sample
+        }
+        #endif
         var detailed = record
         let manager = HealthKitManager.shared
         async let hr = try? manager.fetchHeartRateSeries(for: record)
@@ -388,6 +417,17 @@ final class HealthViewModel {
         errorMessage = nil
         defer { isLoading = false }
 
+        #if DEBUG
+        if useDebugSampleData {
+            applyDebugSampleData()
+            return
+        }
+        isUsingDebugSampleData = false
+        debugDetails = [:]
+        pinCoords = [:]
+        pinChecked = []
+        #endif
+
         let manager = HealthKitManager.shared
         guard manager.isHealthDataAvailable else {
             errorMessage = "此设备不支持 Apple 健康。"
@@ -431,6 +471,34 @@ final class HealthViewModel {
             errorMessage = "读取健康数据失败：\(error.localizedDescription)"
         }
     }
+
+    #if DEBUG
+    private func applyDebugSampleData() {
+        let snap = DebugSampleData.make()
+        last30Days = snap.last30Days
+        last7Days = snap.last7Days
+        previous7Days = snap.previous7Days
+        previous30Days = snap.previous30Days
+        today = snap.today
+        heartMetrics = snap.heartMetrics
+        bodyProfile = snap.bodyProfile
+        bodyTrends = snap.bodyTrends
+        recoveryBaseline = snap.recoveryBaseline
+        sleepNights = snap.sleepNights
+        workouts = snap.workouts
+        pinCoords = snap.pinCoords
+        pinChecked = Set(snap.workouts.map(\.id))
+        debugDetails = snap.details
+        weeklyAdvice = snap.weeklyAdvice
+        weeklyAdviceHistory = snap.weeklyAdvice.map { [$0] } ?? []
+        weeklyAdviceError = nil
+        aiAdvice = snap.aiAdvice
+        aiError = nil
+        hasRequestedAuth = true
+        isUsingDebugSampleData = true
+        errorMessage = nil
+    }
+    #endif
 
     func refresh() async {
         await loadAll()
@@ -555,6 +623,9 @@ final class HealthViewModel {
     // MARK: 上周 AI 周报
 
     func refreshWeeklyAdviceFromStore() {
+        #if DEBUG
+        if isUsingDebugSampleData { return }
+        #endif
         weeklyAdviceHistory = AdviceHistoryStore.shared.allRecords()
         if let last = CalendarWeekHelper.lastCompletedWeek(),
            let match = AdviceHistoryStore.shared.record(weekID: last.weekID) {
@@ -566,6 +637,9 @@ final class HealthViewModel {
 
     /// 建议页出现时：加载历史；周一且尚未成功生成过则自动请求。
     func prepareWeeklyAdviceOnAppear() async {
+        #if DEBUG
+        if isUsingDebugSampleData { return }
+        #endif
         refreshWeeklyAdviceFromStore()
         guard let last = CalendarWeekHelper.lastCompletedWeek() else { return }
         if AdviceHistoryStore.shared.has(weekID: last.weekID) {
