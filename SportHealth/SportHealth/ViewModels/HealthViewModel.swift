@@ -23,6 +23,8 @@ final class HealthViewModel {
     private var pinCoords: [UUID: CLLocationCoordinate2D] = [:]
     private var pinChecked: Set<UUID> = []
     var isLoadingPins = false
+    /// 正在加载运动详情的数量；地图预取 GPS 时见此暂停。
+    private var workoutDetailLoads = 0
     var bodyProfile = BodyProfile()
     var heartMetrics = HeartMetrics()
     var bodyTrends = BodyTrends()
@@ -302,13 +304,23 @@ final class HealthViewModel {
                 id: record.id,
                 coordinate: coordinate,
                 activityType: record.activityType,
-                start: record.start
+                start: record.start,
+                distanceKM: record.distanceKM ?? 0
             )
         }
     }
 
-    /// 批量补齐 GPS 起点；结果缓存，地图可边加载边出点。
+    /// 从本机按月缓存灌回 GPS 起点；杀进程后再进地图可直接出点。
+    func hydrateWorkoutPins(from records: [WorkoutRecord]) {
+        let snap = WorkoutLocalCache.shared.hydratePins(for: records)
+        pinCoords = snap.coords
+        pinChecked = snap.checked
+    }
+
+    /// 批量补齐 GPS 起点；结果按月落盘，地图可边加载边出点。
+    /// 详情页读轨迹时暂停，避免和完整路线查询抢 HealthKit。
     func ensurePins(for records: [WorkoutRecord]) async {
+        hydrateWorkoutPins(from: records)
         let pending = records.filter { !pinChecked.contains($0.id) }
         guard !pending.isEmpty else { return }
         isLoadingPins = true
@@ -317,26 +329,52 @@ final class HealthViewModel {
         let batchSize = 5
         var index = 0
         while index < pending.count {
+            while workoutDetailLoads > 0 && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 80_000_000)
+            }
+            if Task.isCancelled { return }
+
             let end = min(index + batchSize, pending.count)
             let batch = Array(pending[index..<end])
+            var batchChecked: Set<UUID> = []
+            var batchCoords: [UUID: CLLocationCoordinate2D] = [:]
             await withTaskGroup(of: (UUID, CLLocationCoordinate2D?).self) { group in
                 for record in batch {
-                    group.addTask {
+                    group.addTask(priority: .utility) {
                         let coord = try? await HealthKitManager.shared.fetchRouteStartCoordinate(for: record)
                         return (record.id, coord)
                     }
                 }
                 for await (id, coord) in group {
-                    pinChecked.insert(id)
-                    if let coord { pinCoords[id] = coord }
+                    batchChecked.insert(id)
+                    if let coord { batchCoords[id] = coord }
                 }
             }
+            pinChecked.formUnion(batchChecked)
+            if !batchCoords.isEmpty {
+                var next = pinCoords
+                for (id, coord) in batchCoords { next[id] = coord }
+                pinCoords = next
+            }
+            WorkoutLocalCache.shared.savePins(
+                batch.map { ($0, batchCoords[$0.id]) }
+            )
             index = end
         }
     }
 
     /// 加载某次运动的详情（心率曲线 + GPS 轨迹 + 真实分段配速）。返回补全后的记录副本。
     func loadWorkoutDetail(_ record: WorkoutRecord) async -> WorkoutRecord {
+        if let cached = WorkoutLocalCache.shared.detail(matching: record) {
+            var detailed = record
+            cached.apply(to: &detailed)
+            applyHeartRateZones(to: &detailed, fallbackMaxHR: record.maxHR)
+            return detailed
+        }
+
+        workoutDetailLoads += 1
+        defer { workoutDetailLoads -= 1 }
+
         var detailed = record
         let manager = HealthKitManager.shared
         async let hr = try? manager.fetchHeartRateSeries(for: record)
@@ -363,13 +401,18 @@ final class HealthViewModel {
             detailed.sessionDistanceBests = swimDetail.sessionBests
         }
         detailed.splits = realSplits ?? []
-        if !detailed.heartRateSeries.isEmpty {
-            detailed.hrZones = HealthKitManager.heartRateZones(
-                from: detailed.heartRateSeries,
-                maxHRHint: detailed.maxHR ?? record.maxHR,
-                ageYears: bodyProfile.ageYears)
-        }
+        applyHeartRateZones(to: &detailed, fallbackMaxHR: record.maxHR)
+        WorkoutLocalCache.shared.saveDetail(detailed)
         return detailed
+    }
+
+    private func applyHeartRateZones(to record: inout WorkoutRecord, fallbackMaxHR: Double?) {
+        guard !record.heartRateSeries.isEmpty else { return }
+        record.hrZones = HealthKitManager.heartRateZones(
+            from: record.heartRateSeries,
+            maxHRHint: record.maxHR ?? fallbackMaxHR,
+            ageYears: bodyProfile.ageYears
+        )
     }
 
     /// 历史游泳均配速（分钟/100m），排除当前这条，用于对比。
@@ -426,6 +469,7 @@ final class HealthViewModel {
             recoveryBaseline = rec
             sleepNights = s
             workouts = w
+            hydrateWorkoutPins(from: w)
             refreshWeeklyAdviceFromStore()
         } catch {
             errorMessage = "读取健康数据失败：\(error.localizedDescription)"

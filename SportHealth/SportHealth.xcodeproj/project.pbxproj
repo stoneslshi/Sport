@@ -36,6 +36,8 @@
 		C10000000000000000000019 /* AdviceHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019 /* AdviceHistoryStore.swift */; };
 		C1000000000000000000001A /* ChinaCoordinateTransform.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001A /* ChinaCoordinateTransform.swift */; };
 		C1000000000000000000001B /* WorkoutLocationsMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001B /* WorkoutLocationsMapView.swift */; };
+		C1000000000000000000001C /* PlaceGeocoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001C /* PlaceGeocoder.swift */; };
+		C1000000000000000000001D /* WorkoutLocalCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001D /* WorkoutLocalCache.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -70,6 +72,8 @@
 		B10000000000000000000019 /* AdviceHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdviceHistoryStore.swift; sourceTree = "<group>"; };
 		B1000000000000000000001A /* ChinaCoordinateTransform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChinaCoordinateTransform.swift; sourceTree = "<group>"; };
 		B1000000000000000000001B /* WorkoutLocationsMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLocationsMapView.swift; sourceTree = "<group>"; };
+		B1000000000000000000001C /* PlaceGeocoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceGeocoder.swift; sourceTree = "<group>"; };
+		B1000000000000000000001D /* WorkoutLocalCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLocalCache.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -134,6 +138,8 @@
 				B10000000000000000000005 /* AnalysisEngine.swift */,
 				B10000000000000000000006 /* AIService.swift */,
 				B10000000000000000000019 /* AdviceHistoryStore.swift */,
+				B1000000000000000000001C /* PlaceGeocoder.swift */,
+				B1000000000000000000001D /* WorkoutLocalCache.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -274,6 +280,8 @@
 				C10000000000000000000016 /* Brand.swift in Sources */,
 				C1000000000000000000001A /* ChinaCoordinateTransform.swift in Sources */,
 				C1000000000000000000001B /* WorkoutLocationsMapView.swift in Sources */,
+				C1000000000000000000001C /* PlaceGeocoder.swift in Sources */,
+				C1000000000000000000001D /* WorkoutLocalCache.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

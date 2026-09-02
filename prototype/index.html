@@ -283,6 +283,54 @@
   .map-pin{position:absolute;font-size:16px;transform:translate(-50%,-100%);}
   .map-badge{position:absolute;left:12px;top:12px;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);
     padding:5px 10px;border-radius:8px;font-size:11px;color:var(--sub);}
+  .navbar-actions{display:flex;gap:8px;flex:0 0 auto;}
+  .weather-row{display:flex;gap:10px;margin-bottom:14px;}
+  .wchip{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;}
+  .wchip span{font-size:20px;}
+  .wchip small{display:block;font-size:11px;color:var(--sub);}
+  .wchip b{font-size:18px;font-weight:800;}
+  .loc-map{position:relative;flex:1;min-height:0;background:linear-gradient(180deg,#18241c,#0c1210);overflow:hidden;}
+  .loc-map svg{position:absolute;inset:0;width:100%;height:100%;}
+  .loc-bubble{position:absolute;transform:translate(-50%,-50%);min-width:34px;height:34px;padding:0 9px;border-radius:17px;
+    background:var(--accent);color:#fff;font-weight:800;font-size:13px;font-family:inherit;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 6px 16px rgba(255,143,51,.45);cursor:pointer;z-index:2;border:2px solid rgba(255,255,255,.9);}
+  .loc-bubble.single{width:16px;height:16px;min-width:16px;padding:0;border-radius:8px;}
+  .loc-label{position:absolute;transform:translate(-50%,-50%);z-index:3;border:none;cursor:pointer;
+    background:rgba(0,0,0,.72);color:#fff;border-radius:14px;padding:6px 10px;font-size:12px;font-weight:600;
+    font-family:inherit;white-space:nowrap;box-shadow:0 6px 14px rgba(0,0,0,.28);}
+  .loc-label b{color:var(--accent);font-weight:800;margin-left:4px;}
+  .loc-label.active{outline:2px solid var(--accent);}
+  .loc-locate{position:absolute;right:14px;bottom:calc(48% + 12px);width:36px;height:36px;border-radius:18px;border:none;
+    background:rgba(20,26,34,.88);color:var(--text);font-size:16px;cursor:pointer;z-index:4;box-shadow:0 4px 12px rgba(0,0,0,.25);}
+  .diary-sheet{position:absolute;left:0;right:0;bottom:0;height:48%;background:rgba(20,26,34,.96);backdrop-filter:blur(16px);
+    border-radius:22px 22px 0 0;z-index:5;padding:8px 14px 12px;display:flex;flex-direction:column;
+    box-shadow:0 -8px 28px rgba(0,0,0,.28);}
+  .diary-sheet .grab{width:36px;height:5px;border-radius:3px;background:#3a4654;margin:2px auto 10px;}
+  .diary-sheet h2{margin:0;font-size:18px;font-weight:800;}
+  .diary-cap{font-size:13px;color:var(--sub);line-height:1.55;margin:6px 0 12px;}
+  .diary-tabs{display:flex;gap:8px;margin-bottom:12px;}
+  .diary-tabs button{border:none;background:var(--panel2);color:var(--sub);border-radius:16px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+  .diary-tabs button.active{background:var(--accent);color:#fff;}
+  .city-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;overflow:auto;padding-bottom:8px;}
+  .city-card{position:relative;background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:12px;text-align:left;cursor:pointer;min-height:92px;overflow:hidden;}
+  .city-card.active{border-color:var(--accent);}
+  .city-card .cn{font-size:16px;font-weight:800;}
+  .city-card .stamp{position:absolute;top:10px;right:10px;font-size:10px;color:var(--sub);background:rgba(255,255,255,.06);padding:3px 6px;border-radius:10px;}
+  .city-card .meta{display:flex;justify-content:space-between;align-items:flex-end;margin-top:18px;font-size:12px;}
+  .city-card .meta b{color:var(--accent);font-size:13px;}
+  .city-card .globe{position:absolute;right:6px;bottom:-4px;font-size:36px;opacity:.08;pointer-events:none;}
+  .loc-bar{position:absolute;left:16px;right:16px;bottom:16px;background:rgba(20,26,34,.82);backdrop-filter:blur(12px);
+    border-radius:22px;padding:12px 16px;z-index:3;display:flex;justify-content:space-between;align-items:center;}
+  .loc-bar b{font-size:14px;}
+  .loc-bar button{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:14px;padding:6px 10px;font-size:12px;cursor:pointer;}
+  .loc-sheet{position:absolute;left:0;right:0;bottom:0;max-height:62%;background:var(--panel);border-radius:20px 20px 0 0;
+    z-index:6;padding:14px 16px 20px;border-top:1px solid var(--line);overflow:auto;}
+  .loc-sheet-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .loc-sheet-hd button{background:none;border:none;color:var(--accent);font-size:15px;font-weight:600;cursor:pointer;}
+  .loc-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--sub);font-size:14px;z-index:2;padding:24px;text-align:center;line-height:1.5;}
+  #page-map.active{display:flex;flex-direction:column;height:600px;margin:0 -18px;padding:0;}
+  #page-map .navbar{padding:2px 18px 8px;}
   .split-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-top:1px solid var(--line);font-size:13px;}
   .split-row:first-child{border-top:none;}
   .split-row .sp-bar{flex:1;height:6px;border-radius:3px;background:var(--panel2);margin:0 12px;overflow:hidden;}
@@ -444,7 +492,7 @@
 <body>
 
 <div class="stage-title">燃知 · 可点击交互原型</div>
-<div class="stage-sub">运动页：类型卡可点过滤 · 右上角 ↗ 汇总分享 · 详情 ↗ 单次海报</div>
+<div class="stage-sub">运动页：本周/本月/本年 · 左上角地图日记 · 类型过滤 · 右上角 ↗ 汇总分享</div>
 
 <div class="phone">
   <div class="notch"></div>
@@ -580,13 +628,14 @@
       <!-- ============ 运动 ============ -->
       <div class="page" id="page-workouts">
         <div class="navbar">
+          <button class="icon-btn" title="运动地图" onclick="openMap()">&#128506;</button>
           <h1>运动记录</h1>
           <button class="icon-btn" title="分享区间汇总" onclick="openShareFromWorkouts()">&#8599;</button>
         </div>
         <div class="seg" id="wkRange">
-          <button class="active" onclick="switchWkRange(this,'w')">近7天</button>
-          <button onclick="switchWkRange(this,'m')">近1个月</button>
-          <button onclick="switchWkRange(this,'y')">近1年</button>
+          <button class="active" onclick="switchWkRange(this,'w')">本周</button>
+          <button onclick="switchWkRange(this,'m')">本月</button>
+          <button onclick="switchWkRange(this,'y')">本年</button>
           <button onclick="switchWkRange(this,'c')">自定义</button>
         </div>
         <div class="card" id="wkDateCard" style="display:none;padding:12px 14px;">
@@ -599,7 +648,7 @@
         </div>
         <div class="card" style="text-align:center;padding:22px;">
           <div style="display:flex;justify-content:space-around;">
-            <div><b style="font-size:24px" id="wkCount">7</b><div class="muted" id="wkCountLbl">近7天次数</div></div>
+            <div><b style="font-size:24px" id="wkCount">7</b><div class="muted" id="wkCountLbl">本周次数</div></div>
             <div><b style="font-size:24px" id="wkMin">248</b><div class="muted">锻炼分钟</div></div>
             <div><b style="font-size:24px" id="wkKcal">1,860</b><div class="muted">总消耗 kcal</div></div>
           </div>
@@ -661,7 +710,6 @@
             <span><i class="lg-dot"></i> 当前值</span>
           </div>
         </div>
-
 
         <!-- 体重·体脂趋势 -->
         <div class="card">
@@ -964,6 +1012,16 @@
         </div>
       </div>
 
+      <!-- ============ 户外运动地图 ============ -->
+      <div class="page" id="page-map">
+        <div class="navbar" style="padding-bottom:8px;">
+          <button class="detail-back" onclick="closeMap()">&#8249; 运动记录</button>
+          <h1>运动地图</h1>
+          <button class="icon-btn" title="显示全部地点" onclick="renderMap()">&#8596;</button>
+        </div>
+        <div class="loc-map" id="locMap"></div>
+      </div>
+
       <!-- ============ 运动详情（无 Tab，从列表进入） ============ -->
       <div class="page" id="page-detail">
         <div class="navbar" style="padding-bottom:8px;">
@@ -1070,6 +1128,7 @@ const WORKOUTS = [
   {off:0,type:'跑步',min:32,kcal:412,km:5.4,t:'07:12',avgHR:148,maxHR:172,gps:true,climb:38},
   {off:0,type:'健走',min:22,kcal:96,km:1.9,t:'12:40',avgHR:104,maxHR:118,gps:true,climb:6},
   {off:1,type:'力量训练',min:45,kcal:286,km:0,t:'19:40',avgHR:126,maxHR:158,gps:false,climb:0},
+  {off:5,type:'跑步',min:32,kcal:318,km:5.2,t:'12:20',avgHR:146,maxHR:166,gps:false,climb:0},
   {off:2,type:'骑行',min:55,kcal:498,km:18.2,t:'18:05',avgHR:132,maxHR:160,gps:true,climb:145},
   {off:3,type:'跑步',min:28,kcal:356,km:4.6,t:'06:50',avgHR:150,maxHR:174,gps:true,climb:30},
   {off:4,type:'游泳',min:40,kcal:308,km:1.5,t:'20:10',avgHR:128,maxHR:150,gps:false,climb:0},
@@ -1092,6 +1151,9 @@ const WORKOUTS = [
 ];
 const MONTHS=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 function dateFromOffset(off){const d=new Date(TODAY);d.setDate(d.getDate()-off);return d;}
+function startOfWeek(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());const day=x.getDay();x.setDate(x.getDate()-(day===0?6:day-1));return x;}
+function startOfMonth(d){return new Date(d.getFullYear(),d.getMonth(),1);}
+function startOfYear(d){return new Date(d.getFullYear(),0,1);}
 function fmtMD(d){return (d.getMonth()+1)+'月'+d.getDate()+'日';}
 function fmtYMD(d){return d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate();}
 function toISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -1126,8 +1188,9 @@ function renderTodayWorkouts(){
 /* ---- 运动页：类型过滤 + 列表 ---- */
 let wkSelectedType=null;
 let wkRangeList=[];
-let wkRangeLabel='近7天';
+let wkRangeLabel='本周';
 let wkPeriodText='';
+let boxSelectedCity=null;
 
 function renderTypeStats(list){
   const box=document.getElementById('wkTypeStats');
@@ -1224,9 +1287,9 @@ function switchWkRange(btn,r){
   if(r==='c'){card.style.display='block';return;}
   card.style.display='none';
   let start,label;
-  if(r==='w'){start=dateFromOffset(6);label='近7天';}
-  else if(r==='m'){start=dateFromOffset(29);label='近1个月';}
-  else{start=dateFromOffset(364);label='近1年';}
+  if(r==='w'){start=startOfWeek(TODAY);label='本周';}
+  else if(r==='m'){start=startOfMonth(TODAY);label='本月';}
+  else{start=startOfYear(TODAY);label='本年';}
   renderWk(start,TODAY,label);
 }
 function applyWkDate(){
@@ -1249,14 +1312,18 @@ function openShareFromWorkouts(){
 }
 // 初始化：默认近7天 + 自定义日期框默认值 + 首页今日运动
 (function initWk(){
-  document.getElementById('wkStart').value=toISO(dateFromOffset(6));
+  document.getElementById('wkStart').value=toISO(startOfWeek(TODAY));
   document.getElementById('wkEnd').value=toISO(TODAY);
-  renderWk(dateFromOffset(6),TODAY,'近7天');
+  renderWk(startOfWeek(TODAY),TODAY,'本周');
   renderTodayWorkouts();
   // 趋势图默认折叠，首次展开时再绘制（避免 hidden canvas 尺寸为 0）
-  // 支持 URL hash 直接定位页面（如 #sleep / #ai），便于分享与截图
+  // 支持 URL hash 直接定位页面（如 #sleep / #ai / #map），便于分享与截图
   const h=location.hash.replace('#','');
-  if(h && h!=='share'){const tab=document.querySelector('.tab[data-p="'+h+'"]');if(tab)go(tab,h);}
+  if(h==='map'){
+    const tab=document.querySelector('.tab[data-p="workouts"]');
+    if(tab) go(tab,'workouts');
+    openMap();
+  } else if(h && h!=='share'){const tab=document.querySelector('.tab[data-p="'+h+'"]');if(tab)go(tab,h);}
   renderWeekReview(false);
 })();
 
@@ -1276,8 +1343,10 @@ function toggleTrends(ev){
 
 /* ===== 运动详情页 ===== */
 let detailFromTab='workouts'; // 记录从哪个 Tab 进入，返回时用
-function openDetail(id){
+let detailFromMap=false;
+function openDetail(id, fromMap){
   shareWorkoutId=id;
+  detailFromMap=!!fromMap;
   const active=document.querySelector('.tab.active');
   detailFromTab=active?active.dataset.p:'workouts';
   const x=WK_INDEXED[id];
@@ -1307,9 +1376,19 @@ function genericDetailHTML(x,id){
     <div class="dtype"><span class="di" style="background:${ic[1]}">${ic[0]}</span>${x.type}</div>
     <div class="ddate">${x.d.getFullYear()}年${fmtMD(x.d)} ${x.t} 开始</div>
   </div>${metrics}`;
+  if(x.gps){
+    const temp=22+((id*7)%10);
+    const hum=50+((id*13)%30);
+    html+=`<div class="weather-row">
+      <div class="wchip"><span>🌡</span><div><small>气温</small><b>${temp}°</b></div></div>
+      <div class="wchip"><span>💧</span><div><small>湿度</small><b>${hum}%</b></div></div>
+    </div>`;
+  }
   if(x.gps && x.km>0){
     html+=`<div class="card"><h3>运动轨迹 <span class="muted">${x.km} km</span></h3>${trackMapSVG(id,x)}</div>`;
-    html+=`<div class="card"><h3>分段配速 <span class="muted">每公里</span></h3>${splitsHTML(x)}</div>`;
+  }
+  if(x.km>0 && x.type!=='游泳'){
+    html+=`<div class="card"><h3>分段配速 <span class="muted">${x.gps?'每公里':'每公里 · 室内'}</span></h3>${splitsHTML(x)}</div>`;
   }
   html+=`<div class="card"><h3>心率曲线 <span class="muted">平均 ${x.avgHR} · 峰值 ${x.maxHR}</span></h3>${hrCurveSVG(x)}
     ${hrZonesHTML(x)}</div>`;
@@ -1413,7 +1492,150 @@ function swimDetailHTML(x){
 }
 function backToWorkouts(){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-'+detailFromTab).classList.add('active');
+  if(detailFromMap){
+    document.getElementById('page-map').classList.add('active');
+    renderMap();
+  } else {
+    document.getElementById('page-'+detailFromTab).classList.add('active');
+  }
+  document.querySelector('.content').scrollTop=0;
+}
+
+function mapList(){
+  return wkSelectedType ? wkRangeList.filter(x=>x.type===wkSelectedType) : wkRangeList;
+}
+function cityOf(x){
+  if(!x.gps) return null;
+  if(x.off>180) return {id:'beijing', name:'北京市', left:50, top:16, country:'中国'};
+  if(x.type==='骑行') return {id:'shanghai', name:'上海市', left:74, top:26, country:'中国'};
+  return {id:'hangzhou', name:'杭州市', left:62, top:34, country:'中国'};
+}
+function placeOf(x){
+  const c=cityOf(x);
+  if(!c) return null;
+  if(c.id==='hangzhou' && x.type==='健走') return {id:'park', name:'滨江公园', left:58, top:62};
+  if(c.id==='hangzhou') return {id:'greenway', name:'环城绿道', left:66, top:56};
+  return {id:c.id+'-spot', name:c.name, left:c.left, top:c.top};
+}
+function openMap(){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-map').classList.add('active');
+  document.querySelector('.content').scrollTop=0;
+  renderMap();
+}
+function closeMap(){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-workouts').classList.add('active');
+  document.querySelector('.content').scrollTop=0;
+}
+function closeLocSheet(){
+  const el=document.getElementById('locSheet');
+  if(el) el.style.display='none';
+}
+function mapCities(){
+  const map={};
+  mapList().forEach(x=>{
+    const c=cityOf(x);
+    if(!c) return;
+    if(!map[c.id]) map[c.id]={...c, items:[], km:0};
+    map[c.id].items.push(x);
+    map[c.id].km+=x.km||0;
+  });
+  return Object.values(map).sort((a,b)=>b.items.length-a.items.length);
+}
+function mapClusters(){
+  const map={};
+  mapList().forEach(x=>{
+    const p=placeOf(x);
+    if(!p) return;
+    if(!map[p.id]) map[p.id]={...p, items:[]};
+    map[p.id].items.push(x);
+  });
+  return Object.values(map);
+}
+function diaryCaption(cities,n){
+  const period=wkRangeLabel==='自定义'?'这段时间':wkRangeLabel;
+  if(!n) return '当前范围没有带定位的户外运动。换个时间或去掉类型过滤再试。';
+  if(cities.length>=2) return period+'里，你跑过 '+cities.length+' 座城市。足迹正在铺开成一张自己的地图。';
+  if(cities.length===1) return period+'的户外运动，都留在了'+cities[0].name+'。';
+  return period+'共 '+n+' 次户外运动。';
+}
+function ymStamp(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+function kmText(km){
+  if(!km) return '—';
+  return km>=100?Math.round(km)+' km':km.toFixed(1)+' km';
+}
+function openLocCluster(placeId){
+  const groups=mapClusters();
+  const g=groups.find(x=>x.id===placeId);
+  if(!g) return;
+  if(g.items.length===1){ openDetail(g.items[0].id, true); return; }
+  openCitySheet(g.name, g.items);
+}
+function openCityCluster(cityId){
+  const cities=mapCities();
+  const g=cities.find(x=>x.id===cityId);
+  if(!g) return;
+  document.querySelectorAll('.city-card').forEach(el=>el.classList.toggle('active', el.dataset.id===cityId));
+  document.querySelectorAll('.loc-label').forEach(el=>el.classList.toggle('active', el.dataset.id===cityId));
+  if(boxSelectedCity===cityId){
+    if(g.items.length===1){ openDetail(g.items[0].id, true); return; }
+    openCitySheet(g.name, g.items);
+    return;
+  }
+  boxSelectedCity=cityId;
+}
+function openCitySheet(name, items){
+  const sheet=document.getElementById('locSheet');
+  document.getElementById('locSheetTitle').textContent=name+' · '+items.length+' 次';
+  document.getElementById('locSheetList').innerHTML=items.map(x=>{
+    const ic=icon(x.type);
+    const dist=x.km>0?' · '+x.km+' km':'';
+    return `<div class="wk clickable" onclick="openDetail(${x.id}, true)"><div class="wi" style="background:${ic[1]}">${ic[0]}</div>`
+      +`<div><div class="wtitle">${x.type}</div><div class="wsub">${fmtMD(x.d)} ${x.t} · ${x.min} 分钟${dist}</div></div>`
+      +`<div class="wcal"><b>${x.kcal}</b><br><span>kcal</span></div><span class="chev">&#8250;</span></div>`;
+  }).join('');
+  sheet.style.display='block';
+}
+function renderMap(){
+  boxSelectedCity=null;
+  const box=document.getElementById('locMap');
+  const cities=mapCities();
+  const n=cities.reduce((s,g)=>s+g.items.length,0);
+  const svg=`<svg viewBox="0 0 100 100" preserveAspectRatio="none">
+    <rect width="100" height="100" fill="#10180f"/>
+    <path d="M22 8 C34 2,52 4,64 10 S84 22,86 34 S78 48,64 52 S38 54,26 42 S14 18,22 8 Z"
+      fill="rgba(46,125,50,.42)" stroke="#3ddc84" stroke-width=".9"/>
+    <path d="M30 46 C48 42,62 36,78 30" fill="none" stroke="rgba(255,55,95,.35)" stroke-width="1.4" stroke-dasharray="2 2"/>
+  </svg>`;
+  let labels='';
+  cities.forEach(g=>{
+    labels+=`<button class="loc-label" data-id="${g.id}" style="left:${g.left}%;top:${g.top}%" onclick="openCityCluster('${g.id}')">${g.name} <b>${g.items.length}条</b></button>`;
+  });
+  const empty=n?'':`<div class="loc-empty">当前范围没有带 GPS 的户外运动<br>换个时间或去掉类型过滤再试</div>`;
+  const cards=cities.map(g=>{
+    const first=g.items.reduce((a,b)=>a.d<b.d?a:b);
+    return `<button class="city-card" data-id="${g.id}" onclick="openCityCluster('${g.id}')">
+      <div class="cn">${g.name}</div>
+      <div class="stamp">${ymStamp(first.d)}</div>
+      <div class="meta"><b>${g.items.length} 条</b><span>${kmText(g.km)}</span></div>
+      <div class="globe">&#127760;</div>
+    </button>`;
+  }).join('');
+  const sheet=`<div class="diary-sheet">
+    <div class="grab"></div>
+    <h2>${n?'你的足迹':'没有带 GPS 的户外运动'}</h2>
+    <div class="diary-cap">${diaryCaption(cities,n)}</div>
+    <div class="diary-tabs"><button class="active">城市 ${cities.length}</button></div>
+    <div class="city-grid">${cards}</div>
+  </div>
+  <div class="loc-sheet" id="locSheet" style="display:none">
+    <div class="loc-sheet-hd"><b id="locSheetTitle"></b><button onclick="closeLocSheet()">完成</button></div>
+    <div id="locSheetList"></div>
+  </div>`;
+  box.innerHTML=svg+labels+empty+`<button class="loc-locate" title="显示全部地点" onclick="renderMap()">&#9678;</button>`+sheet;
 }
 
 /* ===== 分享海报预览 ===== */
@@ -1544,7 +1766,7 @@ function renderPosterMinimal(x){
 function renderPosterWeek(){
   const start=dateFromOffset(6);
   const list=typeof wkRangeList!=='undefined'&&wkRangeList.length?wkRangeList:recordsInRange(start,TODAY);
-  const label=typeof wkRangeLabel!=='undefined'?wkRangeLabel:'近7天';
+  const label=typeof wkRangeLabel!=='undefined'?wkRangeLabel:'本周';
   const period=typeof wkPeriodText!=='undefined'&&wkPeriodText?wkPeriodText:(fmtMD(start)+' – '+fmtMD(TODAY));
   const min=list.reduce((s,x)=>s+x.min,0);
   const kcal=list.reduce((s,x)=>s+x.kcal,0);

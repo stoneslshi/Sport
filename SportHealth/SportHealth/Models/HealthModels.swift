@@ -364,10 +364,117 @@ struct WorkoutMapPin: Identifiable {
     let coordinate: CLLocationCoordinate2D
     let activityType: HKWorkoutActivityType
     let start: Date
+    let distanceKM: Double
+}
+
+/// 逆地理后的城市 / 国家（缓存落盘，供地图日记聚合）。
+struct WorkoutPlaceInfo: Hashable, Codable, Sendable {
+    var locality: String?
+    var subLocality: String?
+    var administrativeArea: String?
+    var country: String?
+    var isoCountryCode: String?
+
+    /// 至少识别出国家，才算解析成功（空结果不落盘，避免新加坡海域等被写成「未知」）。
+    var isResolved: Bool {
+        !Self.cleaned(isoCountryCode).isEmpty || !Self.cleaned(country).isEmpty
+    }
+
+    var cityName: String {
+        if isCityState { return countryName }
+        let city = Self.cleaned(locality)
+        if !city.isEmpty { return city }
+        let sub = Self.cleaned(subLocality)
+        if !sub.isEmpty { return sub }
+        let admin = Self.cleaned(administrativeArea)
+        if !admin.isEmpty { return admin }
+        let nation = countryName
+        return nation == "未知国家" ? "未知地点" : nation
+    }
+
+    var countryName: String {
+        Self.displayCountry(iso: isoCountryCode, name: country)
+    }
+
+    var cityKey: String { "\(countryKey)|\(cityName)" }
+    var countryKey: String {
+        let iso = Self.cleaned(isoCountryCode).uppercased()
+        return iso.isEmpty ? countryName : iso
+    }
+
+    /// 新加坡、香港、澳门等城市国家 / 地区：没有「市」这一层，用国家名作为城市卡。
+    private var isCityState: Bool {
+        ["SG", "HK", "MO", "MC", "VA"].contains(Self.cleaned(isoCountryCode).uppercased())
+    }
+
+    static func from(placemark: CLPlacemark) -> WorkoutPlaceInfo {
+        WorkoutPlaceInfo(
+            locality: placemark.locality,
+            subLocality: placemark.subLocality,
+            administrativeArea: placemark.administrativeArea,
+            country: placemark.country,
+            isoCountryCode: placemark.isoCountryCode?.uppercased()
+        )
+    }
+
+    static func displayCountry(iso: String?, name: String?) -> String {
+        let code = cleaned(iso).uppercased()
+        if let mapped = isoCountryNames[code] { return mapped }
+        let raw = cleaned(name)
+        switch raw.lowercased() {
+        case "singapore", "新加坡共和国": return "新加坡"
+        case "malaysia": return "马来西亚"
+        case "japan": return "日本"
+        case "south korea", "korea, republic of", "republic of korea": return "韩国"
+        case "united states", "united states of america", "usa": return "美国"
+        case "china", "people's republic of china": return "中国"
+        default: return raw.isEmpty ? "未知国家" : raw
+        }
+    }
+
+    private static let isoCountryNames: [String: String] = [
+        "CN": "中国", "SG": "新加坡", "MY": "马来西亚", "JP": "日本",
+        "KR": "韩国", "US": "美国", "GB": "英国", "AU": "澳大利亚",
+        "TH": "泰国", "VN": "越南", "PH": "菲律宾", "ID": "印度尼西亚",
+        "HK": "中国香港", "MO": "中国澳门", "TW": "中国台湾",
+        "FR": "法国", "DE": "德国", "IT": "意大利", "ES": "西班牙",
+        "NZ": "新西兰", "CA": "加拿大", "AE": "阿联酋", "KH": "柬埔寨"
+    ]
+
+    private static func cleaned(_ raw: String?) -> String {
+        raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+}
+
+/// 一座城市的足迹汇总。
+struct MapCityStat: Identifiable {
+    let id: String
+    let name: String
+    let countryName: String
+    let countryKey: String
+    let workoutCount: Int
+    let totalKM: Double
+    let firstDate: Date
+    let lastDate: Date
+    let centroid: CLLocationCoordinate2D
+    let workoutIDs: [UUID]
+}
+
+/// 一个国家的足迹汇总。
+struct MapCountryStat: Identifiable {
+    let id: String
+    let name: String
+    let cityCount: Int
+    let workoutCount: Int
+    let totalKM: Double
+    let firstDate: Date
+    let lastDate: Date
+    let centroid: CLLocationCoordinate2D
+    let workoutIDs: [UUID]
 }
 
 /// 游泳泳姿
-enum SwimStroke: String, CaseIterable, Identifiable {
+enum SwimStroke: String, Codable, CaseIterable, Identifiable {
     case freestyle   // 自由泳
     case breaststroke // 蛙泳
     case backstroke  // 仰泳
@@ -402,25 +509,29 @@ enum SwimStroke: String, CaseIterable, Identifiable {
 }
 
 /// 心率曲线上的一个点
-struct HeartRatePoint: Identifiable {
-    let id = UUID()
+struct HeartRatePoint: Identifiable, Codable {
+    var id = UUID()
     /// 距开始的分钟数
     let minute: Double
     let bpm: Double
+
+    enum CodingKeys: String, CodingKey { case minute, bpm }
 }
 
 /// 海拔曲线上的一个点
-struct ElevationPoint: Identifiable {
-    let id = UUID()
+struct ElevationPoint: Identifiable, Codable {
+    var id = UUID()
     /// 距开始的分钟数
     let minute: Double
     /// 海拔（米）
     let meters: Double
+
+    enum CodingKeys: String, CodingKey { case minute, meters }
 }
 
 /// 分段配速
-struct KMSplit: Identifiable {
-    let id = UUID()
+struct KMSplit: Identifiable, Codable {
+    var id = UUID()
     /// 第几段（1 起）
     let index: Int
     /// 该段用时（分钟）——跑步等为分钟/公里，游泳为分钟/100m
@@ -429,17 +540,21 @@ struct KMSplit: Identifiable {
     var segmentMeters: Double = 1000
 
     var isPer100m: Bool { segmentMeters <= 100 }
+
+    enum CodingKeys: String, CodingKey { case index, paceMin, segmentMeters }
 }
 
 /// 游泳一趟明细
-struct SwimLap: Identifiable {
-    let id = UUID()
+struct SwimLap: Identifiable, Codable {
+    var id = UUID()
     let index: Int
     let start: Date
     let end: Date
     let distanceM: Double
     let stroke: SwimStroke
     var strokeCount: Int?
+
+    enum CodingKeys: String, CodingKey { case index, start, end, distanceM, stroke, strokeCount }
 
     var durationSec: Double { max(end.timeIntervalSince(start), 0) }
 
@@ -457,14 +572,16 @@ struct SwimLap: Identifiable {
 }
 
 /// 游泳自动组（趟与趟之间休息拆分）
-struct SwimSet: Identifiable {
-    let id = UUID()
+struct SwimSet: Identifiable, Codable {
+    var id = UUID()
     let index: Int
     let startLap: Int
     let endLap: Int
     let distanceM: Double
     let activeSec: Double
     let restSec: Double
+
+    enum CodingKeys: String, CodingKey { case index, startLap, endLap, distanceM, activeSec, restSec }
 
     var lapLabel: String {
         startLap == endLap ? "\(startLap)" : "\(startLap)–\(endLap)"
@@ -477,10 +594,12 @@ struct SwimSet: Identifiable {
 }
 
 /// 本场某标准距离的最佳用时
-struct SwimDistanceBest: Identifiable {
-    let id = UUID()
+struct SwimDistanceBest: Identifiable, Codable {
+    var id = UUID()
     let meters: Int
     let timeSec: Double
+
+    enum CodingKeys: String, CodingKey { case meters, timeSec }
 }
 
 /// 心率五区中的一区（始终五段齐全，可为 0 时长）

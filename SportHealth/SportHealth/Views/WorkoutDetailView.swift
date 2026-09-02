@@ -64,7 +64,7 @@ struct WorkoutDetailView: View {
         }
         .navigationTitle(record.activityType.displayName)
         .navigationBarTitleDisplayMode(.inline)
-        .task {
+        .task(priority: .userInitiated) {
             detailed = await vm.loadWorkoutDetail(record)
             isLoading = false
         }
