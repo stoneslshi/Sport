@@ -151,6 +151,7 @@ final class WorkoutLocalCache {
             let url = detailsFolderURL.appendingPathComponent("\(record.id.uuidString).json")
             guard let data = try? Data(contentsOf: url),
                   let cached = try? decoder.decode(CachedWorkoutDetail.self, from: data),
+                  cached.schemaVersion >= CachedWorkoutDetail.currentSchema,
                   cached.fingerprint == Self.fingerprint(for: record) else { return nil }
             try? FileManager.default.setAttributes(
                 [.modificationDate: Date()],
@@ -263,6 +264,9 @@ struct CachedLatLon: Codable {
 }
 
 struct CachedWorkoutDetail: Codable {
+    static let currentSchema = 2
+
+    var schemaVersion: Int
     var id: UUID
     var fingerprint: String
     var savedAt: Date
@@ -270,6 +274,8 @@ struct CachedWorkoutDetail: Codable {
     var elevation: [ElevationPoint]
     var heartRate: [HeartRatePoint]
     var splits: [KMSplit]
+    var paceSeries: [WorkoutMetricPoint]
+    var runningMetrics: RunningMetrics
     var weatherTemp: Double?
     var weatherHumidity: Double?
     var swimLapsCount: Int?
@@ -286,6 +292,8 @@ struct CachedWorkoutDetail: Codable {
             || !elevation.isEmpty
             || !heartRate.isEmpty
             || !splits.isEmpty
+            || !paceSeries.isEmpty
+            || !runningMetrics.isEmpty
             || !swimLaps.isEmpty
             || weatherTemp != nil
             || weatherHumidity != nil
@@ -293,6 +301,7 @@ struct CachedWorkoutDetail: Codable {
     }
 
     init(record: WorkoutRecord) {
+        schemaVersion = Self.currentSchema
         id = record.id
         fingerprint = WorkoutLocalCache.fingerprint(for: record)
         savedAt = Date()
@@ -300,6 +309,8 @@ struct CachedWorkoutDetail: Codable {
         elevation = record.elevationSeries
         heartRate = record.heartRateSeries
         splits = record.splits
+        paceSeries = record.paceSeries
+        runningMetrics = record.runningMetrics
         weatherTemp = record.weatherTemperatureC
         weatherHumidity = record.weatherHumidityPercent
         swimLapsCount = record.laps
@@ -321,6 +332,8 @@ struct CachedWorkoutDetail: Codable {
         record.elevationSeries = elevation
         record.heartRateSeries = heartRate
         record.splits = splits
+        record.paceSeries = paceSeries
+        record.runningMetrics = runningMetrics
         record.weatherTemperatureC = weatherTemp
         record.weatherHumidityPercent = weatherHumidity
         record.laps = swimLapsCount

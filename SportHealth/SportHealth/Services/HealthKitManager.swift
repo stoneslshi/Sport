@@ -45,6 +45,10 @@ final class HealthKitManager {
             q(.heartRate),
             q(.restingHeartRate),
             q(.heartRateVariabilitySDNN),
+            q(.runningSpeed),
+            q(.runningStrideLength),
+            q(.runningVerticalOscillation),
+            q(.runningGroundContactTime),
             q(.bodyMass),
             q(.height),
             q(.bodyFatPercentage),
@@ -731,10 +735,11 @@ final class HealthKitManager {
         return points.enumerated().compactMap { $0.offset % step == 0 ? $0.element : nil }
     }
 
-    /// 一次运动的 GPS 轨迹打包：坐标 + 海拔曲线。
+    /// 一次运动的 GPS 轨迹打包：坐标 + 海拔 + 配速曲线。
     struct WorkoutRoutePayload {
         var coordinates: [CLLocationCoordinate2D] = []
         var elevationSeries: [ElevationPoint] = []
+        var paceSeries: [WorkoutMetricPoint] = []
     }
 
     /// 运动环境：天气（来自 workout metadata）。
@@ -788,7 +793,8 @@ final class HealthKitManager {
         guard !locations.isEmpty else { return WorkoutRoutePayload() }
         return WorkoutRoutePayload(
             coordinates: locations.map(\.coordinate),
-            elevationSeries: elevationSeries(from: locations, workoutStart: record.start)
+            elevationSeries: elevationSeries(from: locations, workoutStart: record.start),
+            paceSeries: paceSeries(from: locations, workoutStart: record.start)
         )
     }
 
@@ -860,6 +866,38 @@ final class HealthKitManager {
         return points
     }
 
+    /// 由 GPS 点生成滚动配速曲线（分钟/公里）。
+    private func paceSeries(from locations: [CLLocation], workoutStart: Date) -> [WorkoutMetricPoint] {
+        let valid = locations.filter {
+            $0.horizontalAccuracy >= 0 && $0.horizontalAccuracy < 40 && $0.timestamp >= workoutStart
+        }
+        guard valid.count >= 3 else { return [] }
+
+        var points: [WorkoutMetricPoint] = []
+        var windowStart = 0
+        for i in 1..<valid.count {
+            let curr = valid[i]
+            while windowStart < i - 1 {
+                let dt = curr.timestamp.timeIntervalSince(valid[windowStart].timestamp)
+                if dt <= 18 { break }
+                windowStart += 1
+            }
+            var dist = 0.0
+            for j in windowStart..<i {
+                dist += valid[j + 1].distance(from: valid[j])
+            }
+            let dt = curr.timestamp.timeIntervalSince(valid[windowStart].timestamp)
+            guard dist > 8, dt > 5 else { continue }
+            let paceMin = (dt / 60.0) / (dist / 1000.0)
+            guard paceMin >= 2.5, paceMin <= 18 else { continue }
+            points.append(WorkoutMetricPoint(
+                minute: max(0, curr.timestamp.timeIntervalSince(workoutStart) / 60),
+                value: paceMin
+            ))
+        }
+        return downsampleMetricPoints(points, limit: 80)
+    }
+
     /// 读取 GPS 轨迹的完整 CLLocation（含时间戳，用于分段配速）。
     private func fetchRouteLocations(for record: WorkoutRecord) async throws -> [CLLocation] {
         guard let workout = try await fetchWorkout(id: record.id) else { return [] }
@@ -908,7 +946,10 @@ final class HealthKitManager {
 
         let locations = try await fetchRouteLocations(for: record)
         if locations.count >= 2 {
-            let fromRoute = splitsFromLocations(locations, segmentMeters: segmentMeters, pauses: pauses)
+            let fromRoute = splitsFromLocations(locations,
+                                                segmentMeters: segmentMeters,
+                                                pauses: pauses,
+                                                workoutStart: record.start)
             if !fromRoute.isEmpty { return fromRoute }
         }
 
@@ -996,12 +1037,39 @@ final class HealthKitManager {
     /// 由 GPS 点按累计距离切段；跨段时按移动时长比例分摊，暂停不计入配速。
     private func splitsFromLocations(_ locations: [CLLocation],
                                      segmentMeters: Double,
-                                     pauses: [DateInterval]) -> [KMSplit] {
+                                     pauses: [DateInterval],
+                                     workoutStart: Date) -> [KMSplit] {
         guard locations.count >= 2, segmentMeters > 0 else { return [] }
         var splits: [KMSplit] = []
         var segIndex = 1
         var distInSeg = 0.0
         var movingSec = 0.0
+        var splitStartTime = locations[0].timestamp
+        var splitStartAlt: Double? = locations[0].verticalAccuracy >= 0 ? locations[0].altitude : nil
+
+        func appendSplit(endTime: Date, endAlt: Double?, meters: Double, moving: Double) {
+            guard meters > 0, moving > 0 else { return }
+            let unit = segmentMeters <= 100 ? 100.0 : 1000.0
+            let paceMin = (moving / 60.0) / (meters / unit)
+            let maxPace = segmentMeters <= 100 ? 30.0 : 120.0
+            guard paceMin > 0, paceMin < maxPace else { return }
+            let elev: Double?
+            if let startAlt = splitStartAlt, let endAlt, endAlt.isFinite, startAlt.isFinite {
+                elev = endAlt - startAlt
+            } else {
+                elev = nil
+            }
+            splits.append(KMSplit(
+                index: segIndex,
+                paceMin: paceMin,
+                segmentMeters: meters,
+                startMinute: max(0, splitStartTime.timeIntervalSince(workoutStart) / 60),
+                elevationDelta: elev
+            ))
+            segIndex += 1
+            splitStartTime = endTime
+            splitStartAlt = endAlt
+        }
 
         for i in 1..<locations.count {
             let prev = locations[i - 1]
@@ -1021,11 +1089,9 @@ final class HealthKitManager {
                 let need = segmentMeters - distInSeg
                 let frac = need / remainingDist
                 movingSec += remainingSec * frac
-                let paceMin = movingSec / 60.0
-                if paceMin > 0, paceMin < 120 {
-                    splits.append(KMSplit(index: segIndex, paceMin: paceMin, segmentMeters: segmentMeters))
-                }
-                segIndex += 1
+                let cross = prev.timestamp.addingTimeInterval(wall * (1 - remainingDist / edgeDist + need / edgeDist))
+                let endAlt = curr.verticalAccuracy >= 0 ? curr.altitude : splitStartAlt
+                appendSplit(endTime: cross, endAlt: endAlt, meters: segmentMeters, moving: movingSec)
                 remainingDist -= need
                 remainingSec *= (1 - frac)
                 distInSeg = 0
@@ -1033,6 +1099,16 @@ final class HealthKitManager {
             }
             distInSeg += remainingDist
             movingSec += remainingSec
+        }
+        // 末段不足 1km 也保留，便于对照 Keep 式分段表
+        if distInSeg >= 50, movingSec > 0 {
+            let last = locations.last
+            appendSplit(
+                endTime: last?.timestamp ?? splitStartTime.addingTimeInterval(movingSec),
+                endAlt: (last?.verticalAccuracy ?? -1) >= 0 ? last?.altitude : splitStartAlt,
+                meters: distInSeg,
+                moving: movingSec
+            )
         }
         return splits
     }
@@ -1194,7 +1270,12 @@ final class HealthKitManager {
         for (i, cross) in crossingTimes.prefix(expected).enumerated() {
             let paceMin = activeDuration(from: segmentStart, to: cross, pauses: pauses) / 60.0
             guard paceMin >= minPace, paceMin <= maxPace else { return nil }
-            splits.append(KMSplit(index: i + 1, paceMin: paceMin, segmentMeters: segmentMeters))
+            splits.append(KMSplit(
+                index: i + 1,
+                paceMin: paceMin,
+                segmentMeters: segmentMeters,
+                startMinute: max(0, segmentStart.timeIntervalSince(segStart) / 60)
+            ))
             segmentStart = cross
         }
         return splits.isEmpty ? nil : splits
@@ -1227,7 +1308,12 @@ final class HealthKitManager {
                 let cross = point.start.addingTimeInterval(span * frac)
                 let paceMin = activeDuration(from: segmentStart, to: cross, pauses: pauses) / 60.0
                 guard paceMin >= minPace, paceMin <= maxPace else { return nil }
-                splits.append(KMSplit(index: segIndex, paceMin: paceMin, segmentMeters: segmentMeters))
+                splits.append(KMSplit(
+                    index: segIndex,
+                    paceMin: paceMin,
+                    segmentMeters: segmentMeters,
+                    startMinute: max(0, segmentStart.timeIntervalSince(segStart) / 60)
+                ))
                 segIndex += 1
                 segmentStart = cross
                 nextThreshold += segmentMeters
@@ -1651,6 +1737,252 @@ final class HealthKitManager {
         }
     }
 
+    /// 跑步动态：步幅 / 步频 / 垂直振幅 / 触地时间。
+    func fetchRunningMetrics(for record: WorkoutRecord) async throws -> RunningMetrics {
+        guard record.isRunning else { return RunningMetrics() }
+        let workout = try await fetchWorkout(id: record.id)
+        let start = record.start
+        let end = record.end
+
+        async let strideSamples = metricSeries(.runningStrideLength, unit: .meter(), from: start, to: end,
+                                               minValue: 0.4, maxValue: 2.5)
+        async let speedSamples = metricSeries(.runningSpeed, unit: .meter().unitDivided(by: .second()),
+                                              from: start, to: end, minValue: 0.8, maxValue: 8)
+        async let voSamples = metricSeries(.runningVerticalOscillation, unit: .meter(),
+                                           from: start, to: end, transform: { $0 * 100 },
+                                           minValue: 3, maxValue: 25)
+        async let gctSamples = metricSeries(.runningGroundContactTime, unit: .secondUnit(with: .milli),
+                                            from: start, to: end, minValue: 120, maxValue: 450)
+        async let stepCadence = cadenceSeriesFromSteps(from: start, to: end)
+
+        let (stride, speed, vo, gct, cadenceFromSteps) = try await (strideSamples, speedSamples, voSamples, gctSamples, stepCadence)
+        var cadence = cadenceFromSteps
+        if cadence.isEmpty, !speed.isEmpty, !stride.isEmpty {
+            cadence = cadenceFromSpeed(speed, stride: stride)
+        }
+
+        var metrics = RunningMetrics(
+            strideSeries: stride,
+            cadenceSeries: cadence,
+            verticalOscSeries: vo,
+            groundContactSeries: gct
+        )
+
+        if let workout {
+            let (avgS, maxS) = workoutQuantityStats(workout, id: .runningStrideLength, unit: .meter())
+            metrics.avgStrideM = avgS ?? average(of: stride)
+            metrics.maxStrideM = maxS ?? stride.map(\.value).max()
+
+            let (avgVO, maxVO) = workoutQuantityStats(workout, id: .runningVerticalOscillation, unit: .meter())
+            metrics.avgVerticalOscCM = avgVO.map { $0 * 100 } ?? average(of: vo)
+            metrics.maxVerticalOscCM = maxVO.map { $0 * 100 } ?? vo.map(\.value).max()
+
+            let (avgG, maxG) = workoutQuantityStats(workout, id: .runningGroundContactTime, unit: .secondUnit(with: .milli))
+            metrics.avgGroundContactMS = avgG ?? average(of: gct)
+            metrics.maxGroundContactMS = maxG ?? gct.map(\.value).max()
+
+            if let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount),
+               let steps = workout.statistics(for: stepType)?.sumQuantity()?.doubleValue(for: .count()),
+               record.durationMinutes > 0.5 {
+                metrics.avgCadence = steps / record.durationMinutes
+            }
+        }
+
+        if metrics.avgStrideM == nil { metrics.avgStrideM = average(of: stride) }
+        if metrics.maxStrideM == nil { metrics.maxStrideM = stride.map(\.value).max() }
+        if metrics.avgCadence == nil { metrics.avgCadence = average(of: cadence) }
+        metrics.maxCadence = cadence.map(\.value).max()
+        if metrics.avgVerticalOscCM == nil { metrics.avgVerticalOscCM = average(of: vo) }
+        if metrics.maxVerticalOscCM == nil { metrics.maxVerticalOscCM = vo.map(\.value).max() }
+        if metrics.avgGroundContactMS == nil { metrics.avgGroundContactMS = average(of: gct) }
+        if metrics.maxGroundContactMS == nil { metrics.maxGroundContactMS = gct.map(\.value).max() }
+
+        return metrics
+    }
+
+    /// 手表跑步速度转配速曲线；样本足够时优先于 GPS 滚动配速。
+    func fetchWatchPaceSeries(for record: WorkoutRecord) async throws -> [WorkoutMetricPoint] {
+        guard record.isRunning else { return [] }
+        return try await metricSeries(
+            .runningSpeed,
+            unit: .meter().unitDivided(by: .second()),
+            from: record.start,
+            to: record.end,
+            transform: { mps in
+                guard mps > 0.5 else { return 0 }
+                return (1000 / mps) / 60
+            },
+            minValue: 2.5,
+            maxValue: 18
+        )
+    }
+
+    /// 给分段补上区间内心率 / 步频均值。
+    static func annotateSplits(_ splits: [KMSplit],
+                               heartRate: [HeartRatePoint],
+                               cadence: [WorkoutMetricPoint]) -> [KMSplit] {
+        guard !splits.isEmpty else { return splits }
+        var cursor = 0.0
+        return splits.map { split in
+            var next = split
+            let start = split.startMinute ?? cursor
+            let end = start + split.durationMinutes
+            if next.startMinute == nil { next.startMinute = start }
+            next.avgHR = averageHR(heartRate, from: start, to: end)
+            next.avgCadence = averageMetric(cadence, from: start, to: end)
+            cursor = end
+            return next
+        }
+    }
+
+    /// 配速五区：相对本次平均配速。
+    static func paceZones(from series: [WorkoutMetricPoint], averagePace: Double?) -> [PaceZoneSlice] {
+        guard series.count >= 2, let avg = averagePace, avg > 0 else { return [] }
+        let defs: [(String, Double, String)] = [
+            ("轻松", 1.12, "blue"),
+            ("稳态", 1.02, "teal"),
+            ("节奏", 0.94, "green"),
+            ("间歇", 0.86, "orange"),
+            ("冲刺", 0, "red")
+        ]
+        var seconds = Array(repeating: 0.0, count: 5)
+        for i in 1..<series.count {
+            let dt = max((series[i].minute - series[i - 1].minute) * 60, 0)
+            let pace = series[i - 1].value
+            let ratio = pace / avg
+            let idx: Int
+            if ratio >= defs[0].1 { idx = 0 }
+            else if ratio >= defs[1].1 { idx = 1 }
+            else if ratio >= defs[2].1 { idx = 2 }
+            else if ratio >= defs[3].1 { idx = 3 }
+            else { idx = 4 }
+            seconds[idx] += dt
+        }
+        let total = max(seconds.reduce(0, +), 0.001)
+        return (0..<5).map { i in
+            PaceZoneSlice(
+                index: i + 1,
+                name: defs[i].0,
+                seconds: seconds[i],
+                tintName: defs[i].2,
+                fraction: seconds[i] / total
+            )
+        }
+    }
+
+    private func metricSeries(_ id: HKQuantityTypeIdentifier,
+                              unit: HKUnit,
+                              from start: Date,
+                              to end: Date,
+                              transform: (Double) -> Double = { $0 },
+                              minValue: Double? = nil,
+                              maxValue: Double? = nil) async throws -> [WorkoutMetricPoint] {
+        let samples = try await fetchQuantitySamples(id, unit: unit, from: start, to: end)
+        var points: [WorkoutMetricPoint] = []
+        points.reserveCapacity(samples.count)
+        for sample in samples {
+            let raw = sample.quantity.doubleValue(for: unit)
+            let value = transform(raw)
+            if let minValue, value < minValue { continue }
+            if let maxValue, value > maxValue { continue }
+            points.append(WorkoutMetricPoint(
+                minute: max(0, sample.startDate.timeIntervalSince(start) / 60),
+                value: value
+            ))
+        }
+        return downsampleMetricPoints(points, limit: 80)
+    }
+
+    private func cadenceSeriesFromSteps(from start: Date, to end: Date) async throws -> [WorkoutMetricPoint] {
+        let samples = try await fetchQuantitySamples(.stepCount, unit: .count(), from: start, to: end)
+        guard samples.count >= 2 else { return [] }
+
+        var points: [WorkoutMetricPoint] = []
+        var windowStart = 0
+        var cum = Array(repeating: 0.0, count: samples.count)
+        var running = 0.0
+        for (i, sample) in samples.enumerated() {
+            running += sample.quantity.doubleValue(for: .count())
+            cum[i] = running
+        }
+
+        for i in 1..<samples.count {
+            let curr = samples[i]
+            while windowStart < i - 1 {
+                let dt = curr.endDate.timeIntervalSince(samples[windowStart].startDate)
+                if dt <= 25 { break }
+                windowStart += 1
+            }
+            let dt = curr.endDate.timeIntervalSince(samples[windowStart].startDate)
+            let steps = cum[i] - (windowStart > 0 ? cum[windowStart - 1] : 0)
+            guard dt > 8, steps > 4 else { continue }
+            let spm = steps / dt * 60
+            guard spm >= 90, spm <= 230 else { continue }
+            points.append(WorkoutMetricPoint(
+                minute: max(0, curr.endDate.timeIntervalSince(start) / 60),
+                value: spm
+            ))
+        }
+        return downsampleMetricPoints(points, limit: 80)
+    }
+
+    private func cadenceFromSpeed(_ speedMps: [WorkoutMetricPoint],
+                                  stride: [WorkoutMetricPoint]) -> [WorkoutMetricPoint] {
+        guard !speedMps.isEmpty, !stride.isEmpty else { return [] }
+        var points: [WorkoutMetricPoint] = []
+        var j = 0
+        for s in speedMps {
+            while j + 1 < stride.count,
+                  abs(stride[j + 1].minute - s.minute) < abs(stride[j].minute - s.minute) {
+                j += 1
+            }
+            let strideM = stride[j].value
+            guard strideM > 0.4 else { continue }
+            let spm = s.value / strideM * 60
+            guard spm >= 90, spm <= 230 else { continue }
+            points.append(WorkoutMetricPoint(minute: s.minute, value: spm))
+        }
+        return downsampleMetricPoints(points, limit: 80)
+    }
+
+    private func workoutQuantityStats(_ workout: HKWorkout,
+                                      id: HKQuantityTypeIdentifier,
+                                      unit: HKUnit) -> (Double?, Double?) {
+        guard let type = HKQuantityType.quantityType(forIdentifier: id),
+              let stats = workout.statistics(for: type) else { return (nil, nil) }
+        return (
+            stats.averageQuantity()?.doubleValue(for: unit),
+            stats.maximumQuantity()?.doubleValue(for: unit)
+        )
+    }
+
+    private func downsampleMetricPoints(_ points: [WorkoutMetricPoint], limit: Int) -> [WorkoutMetricPoint] {
+        guard points.count > limit, limit > 1 else { return points }
+        let step = max(1, points.count / limit)
+        var sampled = points.enumerated().compactMap { $0.offset % step == 0 ? $0.element : nil }
+        if let last = points.last, sampled.last?.minute != last.minute {
+            sampled.append(last)
+        }
+        return sampled
+    }
+
+    private func average(of points: [WorkoutMetricPoint]) -> Double? {
+        guard !points.isEmpty else { return nil }
+        return points.map(\.value).reduce(0, +) / Double(points.count)
+    }
+
+    private static func averageHR(_ series: [HeartRatePoint], from start: Double, to end: Double) -> Double? {
+        let slice = series.filter { $0.minute >= start && $0.minute < max(end, start + 0.05) }
+        guard !slice.isEmpty else { return nil }
+        return slice.map(\.bpm).reduce(0, +) / Double(slice.count)
+    }
+
+    private static func averageMetric(_ series: [WorkoutMetricPoint], from start: Double, to end: Double) -> Double? {
+        let slice = series.filter { $0.minute >= start && $0.minute < max(end, start + 0.05) }
+        guard !slice.isEmpty else { return nil }
+        return slice.map(\.value).reduce(0, +) / Double(slice.count)
+    }
+
     /// 由心率序列估算五区（始终返回 5 段）。阈值按最大心率百分比：
     /// Z1 &lt;60% · Z2 60–70% · Z3 70–80% · Z4 80–90% · Z5 ≥90%。
     /// `estimatedMaxHR` 优先用年龄估算（220−年龄），否则用本次峰值/提示值。
@@ -1666,10 +1998,10 @@ final class HealthKitManager {
 
         // (名称, 上界比例含, 色) — 最后一区上界用很大值
         let defs: [(String, Double, String)] = [
-            ("热身", 0.60, "blue"),
-            ("燃脂", 0.70, "teal"),
-            ("有氧耐力", 0.80, "green"),
-            ("无氧耐力", 0.90, "orange"),
+            ("热身", 0.60, "green"),
+            ("燃脂", 0.70, "yellow"),
+            ("有氧耐力", 0.80, "orange"),
+            ("无氧耐力", 0.90, "red"),
             ("极限", 1.50, "pink")
         ]
 

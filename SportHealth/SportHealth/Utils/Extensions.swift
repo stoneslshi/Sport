@@ -82,12 +82,34 @@ extension TimeInterval {
         if h > 0 { return String(format: "%d:%02d:%02d", h, m, s) }
         return String(format: "%d:%02d", m, s)
     }
+
+    /// 00:49:54
+    var hmsClock: String {
+        let total = max(0, Int(self.rounded()))
+        let h = total / 3600
+        let m = (total % 3600) / 60
+        let s = total % 60
+        return String(format: "%02d:%02d:%02d", h, m, s)
+    }
 }
 
 extension Double {
     /// 分钟数 → 0:33:30
     var minutesAsClock: String {
         (self * 60).clockString
+    }
+
+    /// 分钟数 → 00:49:54
+    var minutesAsHMS: String {
+        (self * 60).hmsClock
+    }
+
+    /// 配速 5'51"
+    var asPaceText: String {
+        guard self.isFinite, self > 0 else { return "—" }
+        let m = Int(self)
+        let s = Int((self - Double(m)) * 60)
+        return String(format: "%d'%02d\"", m, s)
     }
 }
 

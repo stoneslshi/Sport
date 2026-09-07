@@ -319,6 +319,12 @@ struct WorkoutRecord: Identifiable {
     /// 是否为游泳
     var isSwimming: Bool { activityType == .swimming }
 
+    /// 是否为跑步
+    var isRunning: Bool { activityType == .running }
+
+    /// 跑步 / 步行 / 骑行 / 徒步：距离 Hero、配速曲线、分段表
+    var usesRunStyleDetail: Bool { activityType.isOutdoorRouteType }
+
     /// 是否含 GPS 轨迹（至少 2 个点才画线）
     var hasRoute: Bool { routeCoordinates.count >= 2 }
 
@@ -338,16 +344,33 @@ struct WorkoutRecord: Identifiable {
     /// 海拔曲线（相对开始分钟, 海拔米；延迟加载，来自 GPS 轨迹）
     var elevationSeries: [ElevationPoint] = []
 
+    /// 配速曲线（分钟/公里，延迟加载，来自 GPS 或跑步速度）
+    var paceSeries: [WorkoutMetricPoint] = []
+
+    /// 跑步动态（步幅 / 步频 / 垂直振幅 / 触地时间）
+    var runningMetrics: RunningMetrics = RunningMetrics()
+
     /// 详情页心率采样曲线（相对时间秒, bpm）
     var heartRateSeries: [HeartRatePoint] = []
 
     /// 分段配速（跑步等：分钟/公里；游泳：分钟/100m）
     var splits: [KMSplit] = []
 
+    /// 配速区间占比（延迟加载）
+    var paceZones: [PaceZoneSlice] = []
+
     /// 平均配速（分钟/公里），仅对有距离的运动有意义
     var avgPaceMinPerKM: Double? {
         guard let km = distanceKM, km > 0 else { return nil }
         return durationMinutes / km
+    }
+
+    /// 最快配速（分钟/公里）：优先完整公里分段，其次配速曲线（过滤 GPS 毛刺）
+    var bestPaceMinPerKM: Double? {
+        let fromSplits = splits.filter { !$0.isPer100m && $0.segmentMeters >= 800 }.map(\.paceMin)
+        if let best = fromSplits.min() { return best }
+        let fromSeries = paceSeries.map(\.value).filter { $0 >= 2.8 && $0 <= 15 }
+        return fromSeries.min()
     }
 
     /// 游泳平均配速（分钟/100 米），游泳专用
@@ -529,19 +552,98 @@ struct ElevationPoint: Identifiable, Codable {
     enum CodingKeys: String, CodingKey { case minute, meters }
 }
 
+/// 通用时序指标（配速、步幅、步频等）
+struct WorkoutMetricPoint: Identifiable, Codable, Equatable {
+    var id = UUID()
+    /// 距开始的分钟数
+    let minute: Double
+    let value: Double
+
+    enum CodingKeys: String, CodingKey { case minute, value }
+}
+
+/// 跑步动态（Apple Watch 跑步记录常见）
+struct RunningMetrics: Codable, Equatable {
+    var strideSeries: [WorkoutMetricPoint] = []
+    var cadenceSeries: [WorkoutMetricPoint] = []
+    var verticalOscSeries: [WorkoutMetricPoint] = []
+    var groundContactSeries: [WorkoutMetricPoint] = []
+    var avgStrideM: Double?
+    var maxStrideM: Double?
+    var avgCadence: Double?
+    var maxCadence: Double?
+    var avgVerticalOscCM: Double?
+    var maxVerticalOscCM: Double?
+    var avgGroundContactMS: Double?
+    var maxGroundContactMS: Double?
+
+    var hasStride: Bool { !strideSeries.isEmpty || avgStrideM != nil }
+    var hasCadence: Bool { !cadenceSeries.isEmpty || avgCadence != nil }
+    var hasVerticalOsc: Bool { !verticalOscSeries.isEmpty || avgVerticalOscCM != nil }
+    var hasGroundContact: Bool { !groundContactSeries.isEmpty || avgGroundContactMS != nil }
+
+    var isEmpty: Bool {
+        !hasStride && !hasCadence && !hasVerticalOsc && !hasGroundContact
+    }
+}
+
 /// 分段配速
 struct KMSplit: Identifiable, Codable {
     var id = UUID()
     /// 第几段（1 起）
     let index: Int
-    /// 该段用时（分钟）——跑步等为分钟/公里，游泳为分钟/100m
+    /// 该段配速：跑步等为分钟/公里，游泳为分钟/100m
     let paceMin: Double
-    /// 每段距离（米）：跑步 1000，游泳 100
+    /// 每段距离（米）：跑步 1000，游泳 100；末段可能不足 1km
     var segmentMeters: Double = 1000
+    /// 该段开始时刻（相对运动开始的分钟）
+    var startMinute: Double?
+    /// 该段海拔净变化（米，可负）
+    var elevationDelta: Double?
+    /// 该段平均心率
+    var avgHR: Double?
+    /// 该段平均步频（步/分）
+    var avgCadence: Double?
 
     var isPer100m: Bool { segmentMeters <= 100 }
 
-    enum CodingKeys: String, CodingKey { case index, paceMin, segmentMeters }
+    /// 该段实际用时（分钟）
+    var durationMinutes: Double {
+        let unit = isPer100m ? 100.0 : 1000.0
+        guard unit > 0 else { return paceMin }
+        return paceMin * (segmentMeters / unit)
+    }
+
+    var isPartial: Bool { !isPer100m && segmentMeters < 950 }
+
+    enum CodingKeys: String, CodingKey {
+        case index, paceMin, segmentMeters, startMinute, elevationDelta, avgHR, avgCadence
+    }
+}
+
+/// 配速五区中的一区
+struct PaceZoneSlice: Identifiable {
+    let id = UUID()
+    let index: Int
+    let name: String
+    let seconds: Double
+    let tintName: String
+    let fraction: Double
+
+    var percentText: String {
+        String(format: "%.0f%%", fraction * 100)
+    }
+
+    var durationText: String {
+        let total = Int(seconds.rounded())
+        let m = total / 60
+        let s = total % 60
+        if m >= 60 {
+            let h = m / 60
+            return String(format: "%d:%02d:%02d", h, m % 60, s)
+        }
+        return String(format: "%02d:%02d", m, s)
+    }
 }
 
 /// 游泳一趟明细

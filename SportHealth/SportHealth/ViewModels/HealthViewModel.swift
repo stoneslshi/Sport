@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import CoreLocation
+import HealthKit
 
 /// 全局数据中枢：负责拉取 HealthKit 数据、计算统计结果、调用大模型。
 @Observable
@@ -368,7 +369,7 @@ final class HealthViewModel {
         if let cached = WorkoutLocalCache.shared.detail(matching: record) {
             var detailed = record
             cached.apply(to: &detailed)
-            applyHeartRateZones(to: &detailed, fallbackMaxHR: record.maxHR)
+            applyDetailDerivedMetrics(to: &detailed, fallbackMaxHR: record.maxHR)
             return detailed
         }
 
@@ -381,10 +382,19 @@ final class HealthViewModel {
         async let route = try? manager.fetchRouteDetail(for: record)
         async let swim = try? manager.fetchSwimDetail(for: record)
         async let splits = try? manager.fetchSplits(for: record)
-        let (hrSeries, routeDetail, swimDetail, realSplits) = await (hr, route, swim, splits)
+        async let running = try? manager.fetchRunningMetrics(for: record)
+        async let watchPace = try? manager.fetchWatchPaceSeries(for: record)
+        let (hrSeries, routeDetail, swimDetail, realSplits, runningMetrics, watchPaceSeries) =
+            await (hr, route, swim, splits, running, watchPace)
         detailed.heartRateSeries = hrSeries ?? []
         detailed.routeCoordinates = routeDetail?.coordinates ?? []
         detailed.elevationSeries = routeDetail?.elevationSeries ?? []
+        if let watchPaceSeries, watchPaceSeries.count >= 8 {
+            detailed.paceSeries = watchPaceSeries
+        } else {
+            detailed.paceSeries = routeDetail?.paceSeries ?? []
+        }
+        detailed.runningMetrics = runningMetrics ?? RunningMetrics()
 
         if let context = try? await manager.fetchWorkoutContext(for: record) {
             detailed.weatherTemperatureC = context.weatherTemperatureC
@@ -400,10 +410,22 @@ final class HealthViewModel {
             detailed.bestPacePer100m = swimDetail.bestPacePer100m
             detailed.sessionDistanceBests = swimDetail.sessionBests
         }
-        detailed.splits = realSplits ?? []
-        applyHeartRateZones(to: &detailed, fallbackMaxHR: record.maxHR)
+        detailed.splits = HealthKitManager.annotateSplits(
+            realSplits ?? [],
+            heartRate: detailed.heartRateSeries,
+            cadence: detailed.runningMetrics.cadenceSeries
+        )
+        applyDetailDerivedMetrics(to: &detailed, fallbackMaxHR: record.maxHR)
         WorkoutLocalCache.shared.saveDetail(detailed)
         return detailed
+    }
+
+    private func applyDetailDerivedMetrics(to record: inout WorkoutRecord, fallbackMaxHR: Double?) {
+        applyHeartRateZones(to: &record, fallbackMaxHR: fallbackMaxHR)
+        record.paceZones = HealthKitManager.paceZones(
+            from: record.paceSeries,
+            averagePace: record.avgPaceMinPerKM
+        )
     }
 
     private func applyHeartRateZones(to record: inout WorkoutRecord, fallbackMaxHR: Double?) {
@@ -419,6 +441,14 @@ final class HealthViewModel {
     func averageSwimPacePer100m(excluding id: UUID) -> Double? {
         let swims = workouts.filter { $0.isSwimming && $0.id != id && ($0.distanceKM ?? 0) > 0 }
         let paces = swims.compactMap(\.avgPacePer100m)
+        guard !paces.isEmpty else { return nil }
+        return paces.reduce(0, +) / Double(paces.count)
+    }
+
+    /// 同类运动历史均配速（分钟/公里），排除当前这条。
+    func averagePaceMinPerKM(of type: HKWorkoutActivityType, excluding id: UUID) -> Double? {
+        let peers = workouts.filter { $0.activityType == type && $0.id != id && ($0.distanceKM ?? 0) > 0 }
+        let paces = peers.compactMap(\.avgPaceMinPerKM)
         guard !paces.isEmpty else { return nil }
         return paces.reduce(0, +) / Double(paces.count)
     }

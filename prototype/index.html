@@ -335,6 +335,44 @@
   .split-row:first-child{border-top:none;}
   .split-row .sp-bar{flex:1;height:6px;border-radius:3px;background:var(--panel2);margin:0 12px;overflow:hidden;}
   .split-row .sp-bar>i{display:block;height:100%;background:var(--accent);border-radius:3px;}
+  .info-btn{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--panel2);color:var(--sub);font-size:11px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;flex:0 0 auto;}
+  .info-btn:active{background:var(--line);color:var(--text);}
+  .h3-left{display:flex;align-items:center;gap:8px;}
+  .run-hero{background:linear-gradient(160deg,rgba(255,159,10,.16),var(--panel));border:1px solid var(--line);border-radius:20px;padding:18px;margin-bottom:14px;}
+  .run-hero .rh-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .run-hero .rh-name{font-size:18px;font-weight:800;}
+  .run-hero .rh-km{font-size:44px;font-weight:800;letter-spacing:-1px;line-height:1;color:#ff9f0a;margin-top:12px;}
+  .run-hero .rh-km small{font-size:16px;margin-left:4px;font-weight:700;opacity:.85;}
+  .run-hero .rh-stats{display:flex;margin-top:16px;padding-top:14px;border-top:1px solid var(--line);}
+  .run-hero .rh-stats .rs{flex:1;text-align:center;}
+  .run-hero .rh-stats .rs b{display:block;font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .run-hero .rh-stats .rs span{display:block;font-size:11px;color:var(--sub);margin-top:4px;}
+  .pair-row{display:flex;justify-content:space-between;gap:16px;margin-bottom:12px;}
+  .pair-row .ps .lb{font-size:11px;color:var(--sub);}
+  .pair-row .ps .vv{font-size:22px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums;}
+  .pair-row .ps .vv small{font-size:12px;font-weight:600;color:var(--sub);margin-left:4px;}
+  .zone-item{margin-top:12px;}
+  .zone-item .zh{display:flex;align-items:baseline;gap:8px;font-size:13px;}
+  .zone-item .zh .zn{font-weight:800;}
+  .zone-item .zh .zt{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums;}
+  .zone-item .zh .zr{width:96px;text-align:right;font-size:11px;color:var(--sub);}
+  .zone-item .zb{margin-top:6px;height:8px;background:var(--panel2);border-radius:4px;overflow:hidden;}
+  .zone-item .zb>i{display:block;height:100%;border-radius:4px;}
+  .split-head{display:flex;padding:4px 0 8px;font-size:11px;font-weight:700;color:var(--sub);}
+  .split-head span,.split-grid span{font-variant-numeric:tabular-nums;}
+  .split-grid{display:flex;align-items:center;padding:8px 6px;border-radius:8px;font-size:12px;}
+  .split-grid.fast{background:rgba(52,199,89,.12);}
+  .split-grid.slow{background:rgba(255,255,255,.05);}
+  .guide-kicker{font-size:12px;color:var(--accent);font-weight:700;margin-bottom:6px;}
+  .guide-body{font-size:14px;line-height:1.65;color:#dbe3ec;}
+  .guide-body p{margin:0 0 10px;}
+  .guide-body b{color:#fff;}
+  .guide-facts{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px;}
+  .guide-facts span{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .guide-facts span small{display:block;font-size:10px;font-weight:600;color:var(--sub);margin-bottom:2px;}
+  .guide-advice{background:rgba(255,143,51,.12);border:1px solid rgba(255,143,51,.28);border-radius:14px;padding:12px 14px;margin:4px 0 8px;}
+  .guide-advice .ga-l{font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;}
+  .guide-advice p{margin:0;font-size:14px;line-height:1.6;color:#f0dcc8;}
 
   /* ===== 分享海报预览 ===== */
   .share-stage{display:flex;flex-direction:column;align-items:center;gap:14px;padding-bottom:20px;}
@@ -492,7 +530,7 @@
 <body>
 
 <div class="stage-title">燃知 · 可点击交互原型</div>
-<div class="stage-sub">运动页：本周/本月/本年 · 左上角地图日记 · 类型过滤 · 右上角 ↗ 汇总分享</div>
+<div class="stage-sub">跑步详情草案：点 ⓘ 看含义，并按本场数据给一条建议（确认后再编码）</div>
 
 <div class="phone">
   <div class="notch"></div>
@@ -1065,6 +1103,19 @@
       </div>
     </div>
 
+    <!-- 指标说明 -->
+    <div class="sheet-mask" id="metricSheet" onclick="if(event.target===this)closeMetricGuide()">
+      <div class="sheet" style="max-height:72%;" onclick="event.stopPropagation()">
+        <div class="grab"></div>
+        <div class="guide-kicker" id="metricKicker">指标说明</div>
+        <h2 id="metricTitle" style="margin:0 0 12px;">心率</h2>
+        <div class="guide-body" id="metricBody"></div>
+        <div class="guide-facts" id="metricFacts"></div>
+        <div class="guide-advice" id="metricAdvice"></div>
+        <button class="btn-primary" onclick="closeMetricGuide()">知道了</button>
+      </div>
+    </div>
+
     <!-- 设置弹层 -->
     <div class="sheet-mask" id="sheet">
       <div class="sheet">
@@ -1111,6 +1162,141 @@ function goSleep(){
 }
 function openSheet(){document.getElementById('sheet').classList.add('show');}
 function closeSheet(){document.getElementById('sheet').classList.remove('show');}
+const METRIC_GUIDES={
+  hr:{kicker:'强度',title:'心率',html:'<p>运动中心脏每分钟跳动的次数。<b>平均心率</b>反映整场强度，<b>最高心率</b>反映最吃力的那一段。</p>'},
+  hrZone:{kicker:'强度',title:'心率区间',html:'<p>按最大心率百分比分成五区：<b>热身</b> &lt;60% · <b>燃脂</b> 60–70% · <b>有氧耐力</b> 70–80% · <b>无氧耐力</b> 80–90% · <b>极限</b> ≥90%。</p>'},
+  pace:{kicker:'速度',title:'配速',html:'<p>跑完 1 公里所用时间，数字越小越快。<b>平均</b>看整场，<b>最佳</b>看最快的完整一公里。</p>'},
+  paceZone:{kicker:'速度',title:'配速区间',html:'<p>相对本次均速：<b>轻松</b>偏慢，<b>稳态</b>巡航，<b>节奏</b>略快，<b>间歇 / 冲刺</b>明显加速。</p>'},
+  split:{kicker:'结构',title:'分段',html:'<p>每一公里的用时、配速和心率。绿色行是最快公里，用来看哪一段加速、哪一段掉速。</p>'},
+  stride:{kicker:'跑姿',title:'步幅',html:'<p>每一步的长度。休闲跑常见 0.9–1.2 米。想跑快，优先提<b>步频</b>，而不是硬拉大步。</p>'},
+  cadence:{kicker:'跑姿',title:'步频',html:'<p>每分钟落地点数。休闲跑常见 160–180。过低再配过大步幅，膝盖冲击往往更明显。</p>'},
+  vo:{kicker:'跑姿',title:'垂直振幅',html:'<p>身体上下起伏的厘米数。常见大约 6–10 cm。偏高表示很多力气用在跳，而不是往前。</p>'},
+  gct:{kicker:'跑姿',title:'触地时间',html:'<p>单脚着地的毫秒数。休闲跑常见 220–300 ms。偏短更轻快，过长可能步态偏沉。</p>'},
+  elev:{kicker:'路线',title:'海拔',html:'<p>路线高低变化。爬升会拖慢配速、拉高心率，所以单独放在跑姿后面看。</p>'}
+};
+function openMetricGuide(key){
+  const g=METRIC_GUIDES[key]; if(!g) return;
+  const x=WK_INDEXED[shareWorkoutId]||WK_INDEXED[0];
+  const pack=metricAdvice(key,x);
+  document.getElementById('metricKicker').textContent=g.kicker;
+  document.getElementById('metricTitle').textContent=g.title;
+  document.getElementById('metricBody').innerHTML=g.html;
+  document.getElementById('metricFacts').innerHTML=pack.facts.map(f=>`<span><small>${f.l}</small>${f.v}</span>`).join('');
+  document.getElementById('metricAdvice').innerHTML=`<div class="ga-l">结合本场</div><p>${pack.advice}</p>`;
+  document.getElementById('metricSheet').classList.add('show');
+}
+function closeMetricGuide(){document.getElementById('metricSheet').classList.remove('show');}
+function infoBtn(key){return `<button class="info-btn" title="查看说明" onclick="openMetricGuide('${key}')">i</button>`;}
+function formMetricsFor(x){
+  let seed=x.id*17+9; const rnd=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
+  const stride=+(0.90+rnd()*0.22).toFixed(2);
+  const cadence=Math.round(158+rnd()*24);
+  const vo=+(7.2+rnd()*4.2).toFixed(1);
+  const gct=Math.round(220+rnd()*90);
+  return {
+    stride, strideMax:+(stride+0.12+rnd()*0.12).toFixed(2),
+    cadence, cadenceMax:cadence+Math.round(8+rnd()*16),
+    vo, voMax:+(vo+1.8+rnd()*3).toFixed(1),
+    gct, gctMax:gct+Math.round(40+rnd()*50)
+  };
+}
+function elevSpan(x){
+  const lo=Math.max(8, 42-Math.round((x.climb||0)/3));
+  const hi=lo+Math.max(x.climb||12,12);
+  return {lo,hi,climb:x.climb||0};
+}
+function sameTypeAvgPace(x){
+  const peers=WK_INDEXED.filter(w=>w.type===x.type && w.km>0 && w.id!==x.id);
+  if(!peers.length || !x.km) return null;
+  const avg=peers.reduce((s,w)=>s+w.min/w.km,0)/peers.length;
+  return avg;
+}
+function metricAdvice(key,x){
+  const pace=x.km?x.min/x.km:0;
+  const fm=formMetricsFor(x);
+  const el=elevSpan(x);
+  const hist=sameTypeAvgPace(x);
+  if(key==='hr'){
+    const ratio=x.maxHR?x.avgHR/x.maxHR:0;
+    let advice=`本场平均 ${x.avgHR}、峰值 ${x.maxHR}。`;
+    if(ratio>=0.9) advice+=`平均已经很贴近峰值，整场偏拼。下次把配速放慢约 10–15 秒/公里，把平均心率压下来。`;
+    else if(x.avgHR>=150) advice+=`强度落在有氧偏上。若今天本想轻松跑，前半可以再收一点。`;
+    else advice+=`强度可控，峰值没有长时间顶死，适合作为稳态有氧。`;
+    return {facts:[{l:'平均',v:x.avgHR+' 次/分'},{l:'最高',v:x.maxHR+' 次/分'}], advice};
+  }
+  if(key==='hrZone'){
+    const aero=48, hard=22;
+    return {facts:[{l:'有氧耐力',v:aero+'%'},{l:'无氧+极限',v:hard+'%'}],
+      advice: aero>=40
+        ? `有氧耐力占 ${aero}%，主节奏对了。无氧和极限合计 ${hard}%，若这是轻松日，下次把上坡或前 1 公里再收一点。`
+        : `有氧占比偏低，这场更像节奏/间歇。如果目标是打底，把均速放慢，让更多时间留在有氧区。`};
+  }
+  if(key==='pace'){
+    const best=pace*0.88;
+    const fmt=p=>{const m=Math.floor(p),s=Math.round((p-m)*60);return m+"'"+String(s).padStart(2,'0')+'"';};
+    let advice=`平均 ${fmt(pace)}，最快一公里 ${fmt(best)}。`;
+    if(hist){
+      const d=(pace-hist)*60;
+      if(d<=-8) advice+=`比近期同类平均快约 ${Math.abs(Math.round(d))} 秒/公里，注意恢复。`;
+      else if(d>=8) advice+=`比近期同类平均慢约 ${Math.round(d)} 秒/公里，如果是轻松跑，这样刚好。`;
+      else advice+=`和近期同类配速接近，节奏稳定。`;
+    } else advice+=`前后差大约 ${Math.round((pace-best)*60)} 秒/公里，尽量避免第一公里冲太快。`;
+    return {facts:[{l:'平均',v:fmt(pace)+' /km'},{l:'最佳',v:fmt(best)+' /km'}], advice};
+  }
+  if(key==='paceZone'){
+    return {facts:[{l:'稳态',v:'46%'},{l:'冲刺+间歇',v:'14%'}],
+      advice:'稳态占了近一半，巡航段成立。间歇和冲刺合计 14%，多半来自加速或下坡，不必特意再追配速。'};
+  }
+  if(key==='split'){
+    const rows=splitRowsFor(x);
+    const full=rows.filter(r=>!r.partial);
+    const fast=Math.min(...full.map(r=>r.pace));
+    const slow=Math.max(...full.map(r=>r.pace));
+    const delta=Math.round((slow-fast)*60);
+    const fmt=p=>{const m=Math.floor(p),s=Math.round((p-m)*60);return m+"'"+String(s).padStart(2,'0')+'"';};
+    return {facts:[{l:'最快公里',v:fmt(fast)},{l:'最慢公里',v:fmt(slow)}],
+      advice: delta>=25
+        ? `最快和最慢相差约 ${delta} 秒。常见是第一公里偏快、后程掉速。下次前 1–2 公里按均速再慢 5–8 秒出发。`
+        : `公里配速相差约 ${delta} 秒，节奏比较匀。保持这种「前面留一点」即可。`};
+  }
+  if(key==='stride'){
+    return {facts:[{l:'平均',v:fm.stride+' 米'},{l:'最大',v:fm.strideMax+' 米'}],
+      advice: fm.stride>1.15
+        ? `步幅 ${fm.stride} 米偏大，容易变成刹车式着地。试着把步频提到 170 左右，步幅会自然收回。`
+        : fm.stride<0.92
+          ? `步幅 ${fm.stride} 米偏碎。先把姿势站直、髋往前送，不必刻意跨大步。`
+          : `步幅 ${fm.stride} 米落在常见休闲跑区间，可以保持。想提速优先加步频。`};
+  }
+  if(key==='cadence'){
+    return {facts:[{l:'平均',v:fm.cadence+' 步/分'},{l:'最大',v:fm.cadenceMax+' 步/分'}],
+      advice: fm.cadence<160
+        ? `步频 ${fm.cadence} 偏低。轻音乐或手表提示试着靠近 170，通常比拉大步幅更省膝盖。`
+        : fm.cadence>185
+          ? `步频 ${fm.cadence} 已经很快。如果同时步幅很小，注意别碎步蹦；放松肩膀，让步幅自然打开一点。`
+          : `步频 ${fm.cadence} 在舒适区间。配上现在的步幅，跑姿比较均衡。`};
+  }
+  if(key==='vo'){
+    return {facts:[{l:'平均',v:fm.vo+' 厘米'},{l:'最大',v:fm.voMax+' 厘米'}],
+      advice: fm.vo>=10
+        ? `垂直振幅 ${fm.vo} cm 偏高，不少力气用在上下跳。想着「身体平着往前」，步频略提，起伏会下来。`
+        : `垂直振幅 ${fm.vo} cm 还算平稳，前进效率不错。`};
+  }
+  if(key==='gct'){
+    return {facts:[{l:'平均',v:fm.gct+' 毫秒'},{l:'最大',v:fm.gctMax+' 毫秒'}],
+      advice: fm.gct>280
+        ? `触地 ${fm.gct} ms 偏长，步态容易发沉。可把步频略提高，让脚更快离开地面。`
+        : `触地 ${fm.gct} ms 比较轻快。若后半这段变长，通常是配速掉了或上坡。`};
+  }
+  if(key==='elev'){
+    return {facts:[{l:'最高',v:el.hi+' 米'},{l:'最低',v:el.lo+' 米'},{l:'累计爬升',v:el.climb+' 米'}],
+      advice: el.climb>=80
+        ? `累计爬升 ${el.climb} 米，配速变慢、心率升高是正常的。看分段时以上坡那几公里为准，别跟平坦段比。`
+        : el.climb<=15
+          ? `几乎是平路，配速波动更多来自节奏而不是坡。想练匀速，这条路线合适。`
+          : `有一些起伏（爬升 ${el.climb} 米），后程心率偏高很常见，下坡再把步频稳住即可。`};
+  }
+  return {facts:[], advice:'结合本场数据，保持当前节奏即可。'};
+}
 function switchRange(btn,r){
   btn.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
@@ -1310,22 +1496,6 @@ function openShareFromWorkouts(){
   shareTpl='week';
   renderSharePosters();
 }
-// 初始化：默认近7天 + 自定义日期框默认值 + 首页今日运动
-(function initWk(){
-  document.getElementById('wkStart').value=toISO(startOfWeek(TODAY));
-  document.getElementById('wkEnd').value=toISO(TODAY);
-  renderWk(startOfWeek(TODAY),TODAY,'本周');
-  renderTodayWorkouts();
-  // 趋势图默认折叠，首次展开时再绘制（避免 hidden canvas 尺寸为 0）
-  // 支持 URL hash 直接定位页面（如 #sleep / #ai / #map），便于分享与截图
-  const h=location.hash.replace('#','');
-  if(h==='map'){
-    const tab=document.querySelector('.tab[data-p="workouts"]');
-    if(tab) go(tab,'workouts');
-    openMap();
-  } else if(h && h!=='share'){const tab=document.querySelector('.tab[data-p="'+h+'"]');if(tab)go(tab,h);}
-  renderWeekReview(false);
-})();
 
 function toggleTrends(ev){
   if(ev) ev.stopPropagation();
@@ -1344,6 +1514,7 @@ function toggleTrends(ev){
 /* ===== 运动详情页 ===== */
 let detailFromTab='workouts'; // 记录从哪个 Tab 进入，返回时用
 let detailFromMap=false;
+let shareWorkoutId=0;
 function openDetail(id, fromMap){
   shareWorkoutId=id;
   detailFromMap=!!fromMap;
@@ -1357,25 +1528,46 @@ function openDetail(id, fromMap){
   document.querySelector('.content').scrollTop=0;
 }
 function genericDetailHTML(x,id){
+  if(x.km>0 && x.type!=='游泳') return runStyleDetailHTML(x,id);
   const ic=icon(x.type);
   let metrics=`<div class="metric-grid">
     <div class="mc"><b>${x.kcal}</b><small>kcal</small><span>消耗</span></div>
     <div class="mc"><b>${x.min}</b><small>分钟</small><span>时长</span></div>
-    <div class="mc"><b>${x.avgHR}</b><small>bpm</small><span>平均心率</span></div>`;
-  if(x.km>0){
-    metrics+=`<div class="mc"><b>${x.km}</b><small>km</small><span>距离</span></div>
-      <div class="mc"><b>${paceText(x.min,x.km)}</b><span>平均配速</span></div>
-      <div class="mc"><b>${x.climb}</b><small>m</small><span>累计爬升</span></div>`;
-  }else{
-    metrics+=`<div class="mc"><b>${x.maxHR}</b><small>bpm</small><span>最高心率</span></div>
-      <div class="mc"><b>${Math.round(x.kcal/x.min)}</b><small>kcal/min</small><span>强度</span></div>
-      <div class="mc"><b>${x.maxHR-x.avgHR}</b><small>bpm</small><span>心率波动</span></div>`;
-  }
-  metrics+=`</div>`;
+    <div class="mc"><b>${x.avgHR}</b><small>bpm</small><span>平均心率</span></div>
+    <div class="mc"><b>${x.maxHR}</b><small>bpm</small><span>最高心率</span></div>
+    <div class="mc"><b>${Math.round(x.kcal/x.min)}</b><small>kcal/min</small><span>强度</span></div>
+    <div class="mc"><b>${x.maxHR-x.avgHR}</b><small>bpm</small><span>心率波动</span></div>
+  </div>`;
   let html=`<div class="detail-hero">
     <div class="dtype"><span class="di" style="background:${ic[1]}">${ic[0]}</span>${x.type}</div>
     <div class="ddate">${x.d.getFullYear()}年${fmtMD(x.d)} ${x.t} 开始</div>
   </div>${metrics}`;
+  html+=`<div class="card"><h3><span class="h3-left">心率曲线 ${infoBtn('hr')}</span><span class="muted">平均 ${x.avgHR} · 峰值 ${x.maxHR}</span></h3>${hrCurveSVG(x)}
+    ${hrZonesHTML(x)}</div>`;
+  return html;
+}
+function runStyleDetailHTML(x,id){
+  const ic=icon(x.type);
+  const isRun=x.type==='跑步';
+  const dur=String(Math.floor(x.min/60)).padStart(2,'0')+':'+String(x.min%60).padStart(2,'0')+':00';
+  const pace=paceText(x.min,x.km).replace('/km','');
+  let html='';
+  if(x.gps) html+=`<div class="card" style="padding:0;overflow:hidden;">${trackMapSVG(id,x)}</div>`;
+  html+=`<div class="run-hero">
+    <div class="rh-top">
+      <div>
+        <div class="rh-name">${x.type}</div>
+        <div class="muted" style="margin-top:4px">${fmtMD(x.d)} ${x.t} 开始</div>
+      </div>
+      <div class="di" style="width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;background:${ic[1]};font-size:20px">${ic[0]}</div>
+    </div>
+    <div class="rh-km">${x.km.toFixed(2)}<small>公里</small></div>
+    <div class="rh-stats">
+      <div class="rs"><b>${dur}</b><span>时长</span></div>
+      <div class="rs"><b>${pace}</b><span>平均配速</span></div>
+      <div class="rs"><b>${x.kcal} 千卡</b><span>消耗</span></div>
+    </div>
+  </div>`;
   if(x.gps){
     const temp=22+((id*7)%10);
     const hum=50+((id*13)%30);
@@ -1384,43 +1576,110 @@ function genericDetailHTML(x,id){
       <div class="wchip"><span>💧</span><div><small>湿度</small><b>${hum}%</b></div></div>
     </div>`;
   }
+  html+=`<div class="card">
+    <h3><span class="h3-left">心率 ${infoBtn('hr')}</span></h3>
+    <div class="pair-row">
+      <div class="ps"><div class="lb">平均</div><div class="vv">${x.avgHR}<small>次/分</small></div></div>
+      <div class="ps" style="text-align:right"><div class="lb">最高</div><div class="vv">${x.maxHR}<small>次/分</small></div></div>
+    </div>
+    ${hrCurveSVG(x)}
+    <div style="display:flex;align-items:center;gap:8px;margin:14px 0 2px">
+      <div style="font-size:13px;font-weight:700">心率区间</div>${infoBtn('hrZone')}
+    </div>
+    ${hrZonesHTML(x,true)}
+  </div>`;
+  html+=`<div class="card">
+    <h3><span class="h3-left">配速 ${infoBtn('pace')}</span></h3>
+    <div class="pair-row">
+      <div class="ps"><div class="lb">平均</div><div class="vv">${pace}<small>/km</small></div></div>
+      <div class="ps" style="text-align:right"><div class="lb">最佳</div><div class="vv">${bestPaceText(x)}<small>/km</small></div></div>
+    </div>
+    ${lineCurveSVG(x, '#0a84ff','rgba(10,132,255,.14)')}
+    <div style="display:flex;align-items:center;gap:8px;margin:14px 0 2px">
+      <div style="font-size:13px;font-weight:700">配速区间</div>${infoBtn('paceZone')}
+    </div>
+    ${paceZonesHTML(x)}
+  </div>`;
+  html+=`<div class="card">
+    <h3><span class="h3-left">分段 ${infoBtn('split')}</span><span class="muted">${x.gps?'每公里':'每公里 · 室内'}</span></h3>
+    ${splitsTableHTML(x)}
+  </div>`;
+  if(isRun){
+    const fm=formMetricsFor(x);
+    html+=formMetricCard('步幅','stride', fm.stride.toFixed(2), fm.strideMax.toFixed(2),'米', x, '#64d2ff','rgba(100,210,255,.14)');
+    html+=formMetricCard('步频','cadence', String(fm.cadence), String(fm.cadenceMax),'步/分', x, '#ff9f0a','rgba(255,159,10,.14)');
+    html+=formMetricCard('垂直振幅','vo', fm.vo.toFixed(1), fm.voMax.toFixed(1),'厘米', x, '#ff9f0a','rgba(255,159,10,.12)');
+    html+=formMetricCard('触地时间','gct', String(fm.gct), String(fm.gctMax),'毫秒', x, '#0a84ff','rgba(10,132,255,.12)');
+  }
   if(x.gps && x.km>0){
-    html+=`<div class="card"><h3>运动轨迹 <span class="muted">${x.km} km</span></h3>${trackMapSVG(id,x)}</div>`;
+    const el=elevSpan(x);
+    html+=`<div class="card">
+      <h3><span class="h3-left">海拔 ${infoBtn('elev')}</span><span class="muted">路线地形</span></h3>
+      <div class="pair-row">
+        <div class="ps"><div class="lb">最高</div><div class="vv">${el.hi}<small>米</small></div></div>
+        <div class="ps" style="text-align:right"><div class="lb">最低</div><div class="vv">${el.lo}<small>米</small></div></div>
+      </div>
+      ${lineCurveSVG(x,'#ffd60a','rgba(255,214,10,.16)', true)}
+    </div>`;
   }
-  if(x.km>0 && x.type!=='游泳'){
-    html+=`<div class="card"><h3>分段配速 <span class="muted">${x.gps?'每公里':'每公里 · 室内'}</span></h3>${splitsHTML(x)}</div>`;
-  }
-  html+=`<div class="card"><h3>心率曲线 <span class="muted">平均 ${x.avgHR} · 峰值 ${x.maxHR}</span></h3>${hrCurveSVG(x)}
-    ${hrZonesHTML(x)}</div>`;
   return html;
 }
-function hrZonesHTML(x){
-  // 五段式（对齐系统健身 / 参考图）：区间名 + 条 + 时长 + BPM 范围
+function formMetricCard(title,key,avg,max,unit,x,stroke,fill){
+  return `<div class="card">
+    <h3><span class="h3-left">${title} ${infoBtn(key)}</span></h3>
+    <div class="pair-row">
+      <div class="ps"><div class="lb">平均</div><div class="vv">${avg}<small>${unit}</small></div></div>
+      <div class="ps" style="text-align:right"><div class="lb">最大</div><div class="vv">${max}<small>${unit}</small></div></div>
+    </div>
+    ${lineCurveSVG(x,stroke,fill)}
+  </div>`;
+}
+function hrZonesHTML(x, skipTitle){
   const maxHR=Math.max(x.maxHR||190,170);
   const edges=[0.6,0.7,0.8,0.9].map(r=>Math.round(maxHR*r));
   const zones=[
-    {i:1,n:'热身',c:'#5ac8fa',p:2,t:'00:42',r:'<'+edges[0]+' 次/分'},
-    {i:2,n:'燃脂',c:'#64d2ff',p:10,t:'03:16',r:edges[0]+'–'+(edges[1]-1)+' 次/分'},
-    {i:3,n:'有氧耐力',c:'#34c759',p:40,t:'18:22',r:edges[1]+'–'+(edges[2]-1)+' 次/分'},
-    {i:4,n:'无氧耐力',c:'#ff9f0a',p:30,t:'14:31',r:edges[2]+'–'+(edges[3]-1)+' 次/分'},
-    {i:5,n:'极限',c:'#ff375f',p:18,t:'12:08',r:edges[3]+'+ 次/分'}
+    {i:1,n:'热身',c:'#34c759',p:8,t:'02:28',r:'<'+edges[0]+' 次/分'},
+    {i:2,n:'燃脂',c:'#ffd60a',p:22,t:'07:04',r:edges[0]+'–'+(edges[1]-1)+' 次/分'},
+    {i:3,n:'有氧耐力',c:'#ff9f0a',p:48,t:'15:22',r:edges[1]+'–'+(edges[2]-1)+' 次/分'},
+    {i:4,n:'无氧耐力',c:'#ff453a',p:18,t:'05:46',r:edges[2]+'–'+(edges[3]-1)+' 次/分'},
+    {i:5,n:'极限',c:'#ff375f',p:4,t:'01:20',r:edges[3]+'+ 次/分'}
   ];
-  const rows=zones.map(z=>`<div style="margin-top:12px">
-    <div style="display:flex;align-items:baseline;gap:8px;font-size:13px">
-      <b style="color:${z.c}">区间 ${z.i}</b>
+  const rows=zones.map(z=>`<div class="zone-item">
+    <div class="zh">
+      <span class="zn" style="color:${z.c}">区间 ${z.i}</span>
       <span class="muted" style="font-size:11px">${z.n}</span>
-      <span style="margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums">${z.t}</span>
-      <span class="muted" style="width:96px;text-align:right;font-size:11px">${z.r}</span>
+      <span class="zt">${z.t}</span>
+      <span class="zr">${z.r}</span>
     </div>
-    <div style="margin-top:6px;height:8px;background:var(--panel2);border-radius:4px;overflow:hidden">
-      <i style="display:block;height:100%;width:${Math.max(z.p,2)}%;background:${z.c};border-radius:4px"></i>
-    </div>
+    <div class="zb"><i style="width:${Math.max(z.p,3)}%;background:${z.c}"></i></div>
   </div>`).join('');
+  if(skipTitle) return rows;
   return `<div style="margin-top:14px">
     <div style="font-size:13px;font-weight:700;margin-bottom:2px">心率区间</div>
     ${rows}
-    <div class="muted" style="font-size:11px;margin-top:10px">每个心率区间的估计时间</div>
   </div>`;
+}
+function paceZonesHTML(x){
+  const zones=[
+    {n:'轻松',c:'#0a84ff',p:12,t:'03:50'},
+    {n:'稳态',c:'#64d2ff',p:46,t:'14:42'},
+    {n:'节奏',c:'#34c759',p:28,t:'08:58'},
+    {n:'间歇',c:'#ff9f0a',p:10,t:'03:12'},
+    {n:'冲刺',c:'#ff453a',p:4,t:'01:18'}
+  ];
+  return zones.map(z=>`<div class="zone-item">
+    <div class="zh">
+      <span class="zn" style="color:${z.c}">${z.n}</span>
+      <span class="muted" style="font-size:11px">${z.p}%</span>
+      <span class="zt">${z.t}</span>
+    </div>
+    <div class="zb"><i style="width:${Math.max(z.p,3)}%;background:${z.c}"></i></div>
+  </div>`).join('');
+}
+function bestPaceText(x){
+  const p=x.min/x.km*0.88;
+  const m=Math.floor(p), s=Math.round((p-m)*60);
+  return m+"'"+String(s).padStart(2,'0')+'"';
 }
 function swimDetailHTML(x){
   const meters=Math.round(x.km*1000);
@@ -1639,7 +1898,7 @@ function renderMap(){
 }
 
 /* ===== 分享海报预览 ===== */
-let shareWorkoutId=0, shareTpl='route', shareFromWorkouts=false;
+let shareTpl='route', shareFromWorkouts=false;
 function openSharePreview(id){
   shareFromWorkouts=false;
   if(typeof id==='number') shareWorkoutId=id;
@@ -1882,26 +2141,59 @@ function splitsHTML(x){
   }).join('');
 }
 
+// 分段表（公里 / 用时 / 配速 / 心率）
+function splitRowsFor(x){
+  const kmInt=Math.max(1,Math.floor(x.km||1));
+  const frac=Math.round(((x.km||1)-kmInt)*100)/100;
+  const base=(x.km?x.min/x.km:6);
+  let seed=x.id*7+3;const rnd=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
+  const rows=[];
+  for(let i=0;i<kmInt;i++){
+    const p=base*(0.9+rnd()*0.2);
+    rows.push({label:String(i+1), pace:p, hr:Math.round(x.avgHR-8+rnd()*18), partial:false});
+  }
+  if(frac>=0.05){
+    rows.push({label:frac.toFixed(2), pace:base*(0.95+rnd()*0.12), hr:Math.round(x.avgHR-4+rnd()*10), partial:true});
+  }
+  return rows;
+}
+function splitsTableHTML(x){
+  const rows=splitRowsFor(x);
+  const full=rows.filter(r=>!r.partial);
+  const fastest=Math.min(...full.map(r=>r.pace));
+  const slowest=Math.max(...full.map(r=>r.pace));
+  const fmt=p=>{const m=Math.floor(p),s=Math.round((p-m)*60);return m+"'"+String(s).padStart(2,'0')+'"';};
+  const dur=p=>{const t=Math.round(p*60);const m=Math.floor(t/60),s=t%60;return m+':'+String(s).padStart(2,'0');};
+  return `<div class="split-head"><span style="width:36px">公里</span><span style="flex:1;text-align:center">用时</span><span style="flex:1;text-align:center">配速</span><span style="width:40px;text-align:right">心率</span></div>`
+    +rows.map(r=>{
+      const cls=(!r.partial && r.pace===fastest)?' fast':((!r.partial && r.pace===slowest)?' slow':'');
+      return `<div class="split-grid${cls}"><span style="width:36px;font-weight:800">${r.label}</span>`
+        +`<span style="flex:1;text-align:center">${dur(r.partial?r.pace*Number(r.label):r.pace)}</span>`
+        +`<span style="flex:1;text-align:center;font-weight:700">${fmt(r.pace)}</span>`
+        +`<span style="width:40px;text-align:right">${r.hr}</span></div>`;
+    }).join('');
+}
+
 // 心率曲线 SVG
 function hrCurveSVG(x){
+  return lineCurveSVG(x,'#ff453a','rgba(255,69,58,.12)');
+}
+function lineCurveSVG(x,stroke,fill,rising){
   const W=340,H=120,n=24;
-  let seed=x.id*13+5;const rnd=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
-  const lo=x.avgHR-18, hi=x.maxHR;
+  let seed=x.id*13+(rising?29:5);const rnd=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
   const pts=[];
   for(let i=0;i<n;i++){
-    const warm=i<3?i/3:1;
-    const cool=i>n-4?(n-1-i)/3:1;
-    const base=lo+(x.avgHR-lo)*warm;
-    const v=base+(rnd()*(hi-x.avgHR))*warm*cool;
-    const px=(i/(n-1))*W;
-    const py=H-((v-(lo-10))/((hi+8)-(lo-10)))*H;
-    pts.push([px,py]);
+    const t=i/(n-1);
+    const wave=0.35+0.45*Math.sin(t*Math.PI*2.2)+rnd()*0.2;
+    const climb=rising? t*0.35:0;
+    const v=Math.min(1, Math.max(0.08, wave*0.7+climb));
+    pts.push([(t)*W, H-v*(H-8)-4]);
   }
   const path=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
   const area=path+` L ${W} ${H} L 0 ${H} Z`;
   return `<div style="height:120px"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:100%">
-    <path d="${area}" fill="rgba(255,69,58,.12)"/>
-    <path d="${path}" fill="none" stroke="#ff453a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="${area}" fill="${fill}"/>
+    <path d="${path}" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
   </svg></div>`;
 }
 
@@ -2343,6 +2635,21 @@ function genAI(){
     <button class="btn-ghost" onclick="genAI()">重新生成</button>`;
   },1600);
 }
+
+// 初始化：默认近7天 + 自定义日期框默认值 + 首页今日运动
+(function initWk(){
+  document.getElementById('wkStart').value=toISO(startOfWeek(TODAY));
+  document.getElementById('wkEnd').value=toISO(TODAY);
+  renderWk(startOfWeek(TODAY),TODAY,'本周');
+  renderTodayWorkouts();
+  const h=location.hash.replace('#','');
+  if(h==='map'){
+    const tab=document.querySelector('.tab[data-p="workouts"]');
+    if(tab) go(tab,'workouts');
+    openMap();
+  } else if(h && h!=='share'){const tab=document.querySelector('.tab[data-p="'+h+'"]');if(tab)go(tab,h);}
+  renderWeekReview(false);
+})();
 </script>
 </body>
 </html>

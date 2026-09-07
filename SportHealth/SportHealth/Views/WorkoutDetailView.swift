@@ -3,7 +3,7 @@ import Charts
 import MapKit
 import HealthKit
 
-/// 运动详情页：完整指标 + 心率曲线；游泳对齐 Keep 式信息架构（距离 Hero / 趟 / 组 / 配速 / 区间）。
+/// 运动详情页：完整指标 + 心率曲线；跑步对齐常见运动 App 的信息架构；游泳对齐 Keep 式布局。
 struct WorkoutDetailView: View {
     @Environment(HealthViewModel.self) private var vm
     let record: WorkoutRecord
@@ -38,6 +38,14 @@ struct WorkoutDetailView: View {
                         heartRateCard
                         if !detailed.hrZones.isEmpty { hrZonesCard }
                     }
+                } else if detailed.usesRunStyleDetail {
+                    RunStyleDetailStack(
+                        record: record,
+                        detailed: detailed,
+                        tint: tint,
+                        peerAvgPace: vm.averagePaceMinPerKM(of: record.activityType, excluding: record.id),
+                        onMapTap: { showRouteReplay = true }
+                    )
                 } else {
                     header
                     metricsGrid
@@ -101,6 +109,7 @@ struct WorkoutDetailView: View {
         }
         return !detailed.hasRoute && !detailed.hasWeatherInfo
             && detailed.heartRateSeries.isEmpty && detailed.splits.isEmpty
+            && detailed.paceSeries.isEmpty && detailed.runningMetrics.isEmpty
     }
 
     @MainActor
