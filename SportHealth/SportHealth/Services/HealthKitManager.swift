@@ -220,12 +220,12 @@ final class HealthKitManager {
     // MARK: - 睡眠
 
     /// 拉取最近 nights 晚的睡眠数据，按「起床日」聚合，按日期升序返回。
-    /// 含主睡眠分期时间轴、前一日傍晚午睡、以及昨夜生命体征（呼吸/血氧/腕温）。
+    /// 含主睡眠分期时间轴、前一日白天短睡、以及昨夜生命体征（呼吸/血氧/腕温）。
     func fetchSleepNights(nights: Int) async throws -> [SleepNight] {
         guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return [] }
         let now = Date()
         let end = now
-        // 多取两天余量，便于挂载前一日傍晚午睡
+        // 多取两天余量，便于挂载前一日白天短睡
         guard let start = calendar.date(byAdding: .day, value: -(nights + 2),
                                         to: calendar.startOfDay(for: now)) else { return [] }
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: [])
@@ -380,8 +380,9 @@ final class HealthKitManager {
 
     /// 把睡眠分段样本按「起床日」归组并累计各阶段时长。
     /// 口径对齐系统「健康」App 的过夜主睡眠：
-    /// - 同一天多段只取主睡眠；前一日傍晚短睡挂到次日主睡眠的 nap
-    /// - 睡着总时长用时间并集；阶段占比用单一优选数据源
+    /// - 有手表分期时，主睡眠窗只用手表，避免 iPhone 睡眠日程把起床拖到闹钟结束
+    /// - 按「睡着间隙」拆段，不用清醒样本把两段粘在一起
+    /// - 起床 = 最后一次睡着结束；白天短睡才挂午睡，傍晚假睡不展示
     private func aggregateSleep(samples: [HKCategorySample], nights: Int) -> [SleepNight] {
         var grouped: [Date: [HKCategorySample]] = [:]
         for s in samples {
@@ -398,56 +399,54 @@ final class HealthKitManager {
             let sorted = list.sorted { $0.startDate < $1.startDate }
             guard !sorted.isEmpty else { continue }
 
-            let sessions = clusterSleepSessions(sorted, maxGap: 90 * 60)
+            let primary = primarySleepSamples(in: sorted)
+            let sessions = clusterSleepSessions(primary, maxAsleepGap: 45 * 60)
             guard let main = pickMainSleepSession(sessions) else { continue }
             sessionMap[day] = (main, sessions)
 
-            let asleepSamples = main.filter { stage(for: $0) != .awake }
+            let staged = preferredStagedSamples(in: main)
+            let window = staged.isEmpty ? main : staged
+            let asleepSamples = window.filter { stage(for: $0) != .awake }
             guard let inBed = asleepSamples.map(\.startDate).min(),
-                  let wake = main.map(\.endDate).max() else { continue }
+                  let wake = asleepSamples.map(\.endDate).max() else { continue }
 
             var night = SleepNight(date: day, inBed: inBed, wake: wake)
             night.asleepMin = mergedMinutes(asleepSamples.map { ($0.startDate, $0.endDate) })
 
-            let staged = preferredStagedSamples(in: main)
             for stg in SleepStage.allCases {
-                let intervals = staged
+                let intervals = window
                     .filter { stage(for: $0) == stg }
                     .map { ($0.startDate, $0.endDate) }
                 night.setMinutes(mergedMinutes(intervals), of: stg)
             }
 
-            let stageSum = night.deepMin + night.coreMin + night.remMin
-            if stageSum > 0, night.asleepMin > 0, abs(stageSum - night.asleepMin) > 2 {
-                let scale = night.asleepMin / stageSum
-                night.deepMin *= scale
-                night.coreMin *= scale
-                night.remMin *= scale
+            night.segments = buildSegments(from: window).compactMap { seg in
+                let start = max(seg.start, inBed)
+                let end = min(seg.end, wake)
+                guard end > start else { return nil }
+                return SleepStageSegment(stage: seg.stage, start: start, end: end)
             }
-
-            night.segments = buildSegments(from: staged)
             nightsResult.append(night)
         }
 
         nightsResult.sort { $0.date < $1.date }
 
-        // 把「前一日傍晚」的非主睡眠段挂到次日作为午睡
+        // 前一日白天短睡挂到次日，不把傍晚沙发假睡标成午睡
         for i in nightsResult.indices {
             let day = nightsResult[i].date
             guard let prevDay = calendar.date(byAdding: .day, value: -1, to: day),
                   let prev = sessionMap[prevDay] else { continue }
-            let eveningNaps = prev.all.compactMap { session -> SleepNap? in
-                // 跳过前一日的主睡眠（通常是前一晚过夜）
+            let daytimeNaps = prev.all.compactMap { session -> SleepNap? in
                 if sessionsEqual(session, prev.main) { return nil }
                 guard let start = session.map(\.startDate).min(),
                       let end = session.map(\.endDate).max() else { return nil }
-                // 傍晚短睡：开始在中午之后
-                guard calendar.component(.hour, from: start) >= 12 else { return nil }
+                let hour = calendar.component(.hour, from: start)
+                guard hour >= 10, hour < 17 else { return nil }
                 let asleep = asleepMinutes(in: session)
                 guard asleep >= 10, asleep <= 180 else { return nil }
                 return SleepNap(start: start, end: end, asleepMin: asleep)
             }
-            nightsResult[i].nap = eveningNaps.max(by: { $0.asleepMin < $1.asleepMin })
+            nightsResult[i].nap = daytimeNaps.max(by: { $0.asleepMin < $1.asleepMin })
         }
 
         return Array(nightsResult.suffix(nights))
@@ -480,24 +479,53 @@ final class HealthKitManager {
         return result
     }
 
-    /// 将样本按时间间隔拆成多段会话（间隔超过 maxGap 则新开一段）。
+    /// 有手表分期时只用手表，避免 iPhone 睡眠日程（常写到闹钟点）把过夜窗拉长。
+    private func primarySleepSamples(in samples: [HKCategorySample]) -> [HKCategorySample] {
+        let watch = samples.filter { isAppleWatchSource($0) }
+        return hasStagedSleep(watch) ? watch : samples
+    }
+
+    private func hasStagedSleep(_ samples: [HKCategorySample]) -> Bool {
+        samples.contains { sample in
+            guard let v = HKCategoryValueSleepAnalysis(rawValue: sample.value) else { return false }
+            switch v {
+            case .asleepDeep, .asleepCore, .asleepREM: return true
+            default: return false
+            }
+        }
+    }
+
+    /// 按睡着样本拆段：两段睡着之间超过 maxAsleepGap 则视为另一段。
+    /// 清醒样本只挂到相邻睡着窗上，避免用「起床后仍清醒」把午睡粘进主睡眠。
     private func clusterSleepSessions(_ samples: [HKCategorySample],
-                                      maxGap: TimeInterval) -> [[HKCategorySample]] {
-        guard let first = samples.first else { return [] }
-        var sessions: [[HKCategorySample]] = []
-        var current: [HKCategorySample] = [first]
-        for s in samples.dropFirst() {
+                                      maxAsleepGap: TimeInterval) -> [[HKCategorySample]] {
+        let asleep = samples.filter { stage(for: $0) != .awake }
+            .sorted { $0.startDate < $1.startDate }
+        guard !asleep.isEmpty else { return [] }
+
+        var asleepGroups: [[HKCategorySample]] = []
+        var current: [HKCategorySample] = [asleep[0]]
+        for s in asleep.dropFirst() {
             let sessionEnd = current.map(\.endDate).max() ?? current.last!.endDate
-            let gap = s.startDate.timeIntervalSince(sessionEnd)
-            if gap > maxGap {
-                sessions.append(current)
+            if s.startDate.timeIntervalSince(sessionEnd) > maxAsleepGap {
+                asleepGroups.append(current)
                 current = [s]
             } else {
                 current.append(s)
             }
         }
-        sessions.append(current)
-        return sessions
+        asleepGroups.append(current)
+
+        let awakes = samples.filter { stage(for: $0) == .awake }
+        let pad: TimeInterval = 10 * 60
+        return asleepGroups.map { group in
+            guard let lo = group.map(\.startDate).min(),
+                  let hi = group.map(\.endDate).max() else { return group }
+            let related = awakes.filter {
+                $0.endDate > lo.addingTimeInterval(-pad) && $0.startDate < hi.addingTimeInterval(pad)
+            }
+            return (group + related).sorted { $0.startDate < $1.startDate }
+        }
     }
 
     /// 选出主睡眠段：睡着时长最长；并列时优先早晨起床的（过夜睡）。

@@ -63,7 +63,7 @@ struct SleepNight: Identifiable, Equatable {
     let date: Date
     /// 入睡时间（主睡眠段首个睡着样本开始；不含午睡）
     var inBed: Date
-    /// 起床时间（主睡眠段最晚结束；不含午睡）
+    /// 起床时间（主睡眠段最后一次睡着结束；不含午睡、不含起床后清醒）
     var wake: Date
     /// 睡着总时长（分钟）：所有睡着阶段的时间并集
     var asleepMin: Double = 0
@@ -74,7 +74,7 @@ struct SleepNight: Identifiable, Equatable {
     var awakeMin: Double = 0
     /// 分期时间轴片段（优选数据源）
     var segments: [SleepStageSegment] = []
-    /// 入睡日前一晚的傍晚午睡（若有）
+    /// 入睡日前一天的白天短睡（约 10:00–17:00；若有）
     var nap: SleepNap?
     /// 主睡眠窗内生命体征
     var vitals: SleepVitals = SleepVitals()
