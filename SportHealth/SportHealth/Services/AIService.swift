@@ -137,7 +137,7 @@ struct AIService {
         }
 
         let systemPrompt = """
-        你是「燃知」App 的运动健康教练。请根据上一自然周数据，输出**严格 JSON**（不要 Markdown、不要代码围栏、不要额外解释），用于图文周报卡片。
+        你是「Aglow」App 的运动健康教练。请根据上一自然周数据，输出**严格 JSON**（不要 Markdown、不要代码围栏、不要额外解释），用于图文周报卡片。
 
         JSON 结构：
         {

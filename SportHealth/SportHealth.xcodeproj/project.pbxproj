@@ -427,7 +427,7 @@
 				DEVELOPMENT_TEAM = 6P4KARSH3X;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "燃知";
+				INFOPLIST_KEY_CFBundleDisplayName = Aglow;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "需要读取您的运动与健康数据，用于统计分析并生成个性化建议。";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "应用仅读取健康数据用于分析，不会修改您的健康数据。";
@@ -461,7 +461,7 @@
 				DEVELOPMENT_TEAM = 6P4KARSH3X;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "燃知";
+				INFOPLIST_KEY_CFBundleDisplayName = Aglow;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "需要读取您的运动与健康数据，用于统计分析并生成个性化建议。";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "应用仅读取健康数据用于分析，不会修改您的健康数据。";

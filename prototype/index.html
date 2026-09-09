@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>燃知 · 交互原型</title>
+<title>Aglow · 交互原型</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root{
@@ -529,7 +529,7 @@
 </head>
 <body>
 
-<div class="stage-title">燃知 · 可点击交互原型</div>
+<div class="stage-title">Aglow · 可点击交互原型</div>
 <div class="stage-sub">跑步详情草案：点 ⓘ 看含义，并按本场数据给一条建议（确认后再编码）</div>
 
 <div class="phone">
@@ -541,7 +541,7 @@
       <!-- ============ 概览 · 今日决策页 ============ -->
       <div class="page active" id="page-home">
         <div class="navbar">
-          <h1>燃知</h1>
+          <h1>Aglow</h1>
           <button class="icon-btn" onclick="openSheet()">&#9881;</button>
         </div>
 
@@ -1985,14 +1985,14 @@ function renderPosterRoute(x){
     : `<svg viewBox="0 0 300 520"><defs><radialGradient id="rg" cx="40%" cy="30%"><stop offset="0%" stop-color="#2a1a0e"/><stop offset="100%" stop-color="#0a0e14"/></radialGradient></defs><rect width="300" height="520" fill="url(#rg)"/></svg>`;
   return `<div class="poster-route">
     <div class="mapbg">${map}</div><div class="veil"></div>
-    <div class="top"><span class="brand">燃知</span><span>${dateStr}</span></div>
+    <div class="top"><span class="brand">Aglow</span><span>${dateStr}</span></div>
     <div class="hero">
       <div class="type">${icon(x.type)[0]} ${x.type}</div>
       ${hero}
       <div class="subrow">${subs}</div>
       <div class="hook">${shareHook(x)}</div>
     </div>
-    <div class="mark">燃知</div>
+    <div class="mark">Aglow</div>
   </div>`;
 }
 function renderPosterMinimal(x){
@@ -2008,7 +2008,7 @@ function renderPosterMinimal(x){
     ?`<div><b>${pace}</b><span>${isSwim?'/100m':'/km'}</span></div>`
     :`<div><b>${x.avgHR}</b><span>均心</span></div>`;
   return `<div class="poster-minimal">
-    <div class="top"><span>燃知</span><span>${dateStr}</span></div>
+    <div class="top"><span>Aglow</span><span>${dateStr}</span></div>
     <div class="mid">
       <div class="type">${x.type}</div>
       <div class="big">${big}<small style="font-size:18px;opacity:.55;margin-left:4px">${unitInline.trim()}</small></div>
@@ -2051,21 +2051,21 @@ function renderPosterWeek(){
       +`<span class="met">${met}</span></div>`;
   }).join('');
   return `<div class="poster-week">
-    <div class="top"><span class="brand">燃知</span><span class="range">${label}</span></div>
+    <div class="top"><span class="brand">Aglow</span><span class="range">${label}</span></div>
     <div class="period">${period}</div>
     <div class="hero-num">${list.length}<small>次</small></div>
     <div class="meta">${min} 分钟  ·  ${kcal.toLocaleString()} kcal</div>
     <div class="sec">运动分类</div>
     ${rows||'<div class="muted">暂无数据</div>'}
     <div class="hook">主项是「${types[0]||'—'}」。共 ${list.length} 次，下周再抬一点。</div>
-    <div class="mark">燃知</div>
+    <div class="mark">Aglow</div>
   </div>`;
 }
 function renderPosterLegacy(x){
   const ic=icon(x.type);
   return `<div class="poster-legacy">
     <div class="lg-hd"><div class="lg-ic" style="background:${ic[1]}">${ic[0]}</div>
-      <div><div class="lg-title">${x.type}</div><div class="lg-sub">${fmtMD(x.d)} ${x.t} · 燃知</div></div></div>
+      <div><div class="lg-title">${x.type}</div><div class="lg-sub">${fmtMD(x.d)} ${x.t} · Aglow</div></div></div>
     <div class="lg-grid">
       <div><b>${x.kcal}</b><span>消耗 kcal</span></div>
       <div><b>${x.min}</b><span>时长 分钟</span></div>
@@ -2073,7 +2073,7 @@ function renderPosterLegacy(x){
       <div><b>${x.km>0?x.km:'—'}</b><span>距离 km</span></div>
     </div>
     <div class="lg-cap">完成一次 ${x.type}，消耗 ${x.kcal} kcal。继续保持！</div>
-    <div class="lg-ft">数据来自 Apple 健康 · 燃知</div>
+    <div class="lg-ft">数据来自 Apple 健康 · Aglow</div>
   </div>`;
 }
 function renderSharePosters(){
@@ -2607,7 +2607,7 @@ function openWeekDetail(id){
     `<div class="card" style="margin-top:12px;"><h3>关键亮点</h3>${hl}</div>
      <div class="card"><h3>本周行动</h3>${acts}</div>
      <button class="btn-primary" onclick="alert('原型演示：正式 App 右上角可分享海报')">分享周报</button>
-     <div class="muted" style="font-size:11px;margin-top:10px;">建议仅供参考 · 燃知</div>`;
+     <div class="muted" style="font-size:11px;margin-top:10px;">建议仅供参考 · Aglow</div>`;
   document.getElementById('weekSheet').classList.add('show');
 }
 
