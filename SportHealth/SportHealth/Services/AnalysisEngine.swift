@@ -730,4 +730,107 @@ enum AnalysisEngine {
 
         return (lines.joined(separator: "\n"), snapshot)
     }
+
+    /// 本场点评用摘要：仅聚合指标，不含 GPS 坐标。
+    static func workoutSessionSummary(record: WorkoutRecord,
+                                      detailed: WorkoutRecord,
+                                      peerAvgPace: Double?) -> String {
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "zh_CN")
+        df.dateFormat = "M月d日 HH:mm"
+
+        var lines: [String] = []
+        lines.append("【本场运动】（仅聚合数据，无轨迹坐标）")
+        lines.append("- 类型：\(record.activityType.displayName)")
+        lines.append("- 开始：\(df.string(from: record.start))")
+        lines.append("- 时长：\(record.durationMinutes.minutesAsClock)")
+        lines.append("- 消耗：\(Int(record.caloriesKcal)) 千卡")
+
+        if let km = record.distanceKM, km > 0 {
+            if record.isSwimming {
+                lines.append("- 距离：\(Int((km * 1000).rounded())) 米")
+                if let p = detailed.avgPacePer100m ?? record.avgPacePer100m {
+                    lines.append("- 平均配速：\(p.asPaceText) /100m")
+                }
+                if let best = detailed.bestPacePer100m {
+                    lines.append("- 最佳配速：\(best.asPaceText) /100m")
+                }
+                if let swolf = detailed.avgSWOLF {
+                    lines.append("- 平均 SWOLF：\(Int(swolf.rounded()))")
+                }
+            } else {
+                lines.append("- 距离：\(String(format: "%.2f", km)) 公里")
+                if let p = record.avgPaceMinPerKM {
+                    lines.append("- 平均配速：\(p.asPaceText) /km")
+                }
+                if let best = detailed.bestPaceMinPerKM {
+                    lines.append("- 最佳配速：\(best.asPaceText) /km")
+                }
+            }
+        }
+
+        if let avg = detailed.avgHR ?? record.avgHR {
+            lines.append("- 平均心率：\(Int(avg.rounded())) 次/分")
+        }
+        if let maxHR = detailed.maxHR ?? record.maxHR {
+            lines.append("- 最高心率：\(Int(maxHR.rounded())) 次/分")
+        }
+
+        if !detailed.hrZones.isEmpty {
+            let parts = detailed.hrZones
+                .filter { $0.seconds > 0.5 }
+                .map { "\($0.name) \(Int(($0.fraction * 100).rounded()))%（\($0.durationText)）" }
+            if !parts.isEmpty {
+                lines.append("- 心率区间：" + parts.joined(separator: "、"))
+            }
+        }
+
+        if !detailed.paceZones.isEmpty {
+            let parts = detailed.paceZones
+                .filter { $0.seconds > 0.5 }
+                .map { "\($0.name) \($0.percentText)（\($0.durationText)）" }
+            if !parts.isEmpty {
+                lines.append("- 配速区间：" + parts.joined(separator: "、"))
+            }
+        }
+
+        let fullSplits = detailed.splits.filter { !$0.isPartial }
+        if fullSplits.count >= 2 {
+            let fast = fullSplits.map(\.paceMin).min()
+            let slow = fullSplits.map(\.paceMin).max()
+            if let fast, let slow {
+                let delta = Int(((slow - fast) * 60).rounded())
+                lines.append("- 分段最快：\(fast.asPaceText)，最慢：\(slow.asPaceText)，相差约 \(delta) 秒")
+            }
+        }
+
+        let dyn = detailed.runningMetrics
+        if let stride = dyn.avgStrideM {
+            lines.append("- 平均步幅：\(String(format: "%.2f", stride)) 米")
+        }
+        if let cad = dyn.avgCadence {
+            lines.append("- 平均步频：\(Int(cad.rounded())) 步/分")
+        }
+        if let vo = dyn.avgVerticalOscCM {
+            lines.append("- 平均垂直振幅：\(String(format: "%.1f", vo)) 厘米")
+        }
+        if let gct = dyn.avgGroundContactMS {
+            lines.append("- 平均触地时间：\(Int(gct.rounded())) 毫秒")
+        }
+
+        if let gain = detailed.elevationGain ?? record.elevationGain, gain > 0 {
+            lines.append("- 累计爬升：\(Int(gain.rounded())) 米")
+        }
+
+        if record.isSwimming {
+            if let peer = peerAvgPace, peer > 0 {
+                lines.append("- 近期同类平均配速：\(peer.asPaceText) /100m（不含本场）")
+            }
+        } else if let peer = peerAvgPace, peer > 0, record.avgPaceMinPerKM != nil {
+            lines.append("- 近期同类平均配速：\(peer.asPaceText) /km（不含本场）")
+        }
+
+        lines.append("【要求】只根据以上数字点评本场；禁止编造未给出的指标；不要提及 GPS 或地点。")
+        return lines.joined(separator: "\n")
+    }
 }

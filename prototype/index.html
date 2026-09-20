@@ -187,6 +187,26 @@
   .typing i:nth-child(3){animation-delay:.4s;}
   @keyframes blink{0%,60%,100%{opacity:.3;}30%{opacity:1;}}
 
+  /* 本场 AI 点评（详情页） */
+  .coach-card{background:linear-gradient(145deg,rgba(255,143,51,.16),var(--panel));border:1px solid rgba(255,143,51,.28);border-radius:20px;padding:16px;margin-bottom:14px;}
+  .coach-card .ch{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;}
+  .coach-card h3{margin:0;font-size:16px;display:flex;align-items:center;gap:6px;}
+  .coach-card .ch .sub{font-size:12px;color:var(--sub);margin-top:4px;line-height:1.4;}
+  .coach-vibe{display:inline-flex;align-items:center;gap:4px;background:rgba(255,143,51,.18);color:var(--accent);font-size:11px;font-weight:700;padding:4px 8px;border-radius:8px;margin:8px 0 10px;}
+  .coach-verdict{font-size:14px;line-height:1.55;margin:0 0 12px;}
+  .coach-facts{display:flex;gap:8px;margin-bottom:12px;}
+  .coach-facts span{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:8px 10px;}
+  .coach-facts small{display:block;font-size:11px;color:var(--sub);margin-bottom:2px;}
+  .coach-facts b{font-size:13px;font-weight:700;}
+  .coach-next{font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;}
+  .coach-card ol{margin:0;padding-left:18px;font-size:13px;line-height:1.5;}
+  .coach-card ol li{margin:4px 0;}
+  .coach-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;}
+  .coach-foot .cached{font-size:11px;color:var(--sub);}
+  .coach-foot button{border:none;background:none;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;padding:0;}
+  .coach-load{display:flex;align-items:center;gap:10px;padding:8px 0 4px;color:var(--sub);font-size:13px;}
+  .coach-note{font-size:11px;color:var(--sub);line-height:1.45;margin-top:10px;}
+
   /* 上周建议 · 图文周报 */
   .week-review{background:linear-gradient(145deg,rgba(255,143,51,.16),var(--panel));border:1px solid rgba(255,143,51,.28);border-radius:20px;padding:16px;margin-bottom:14px;}
   .week-review .wr-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;}
@@ -530,7 +550,7 @@
 <body>
 
 <div class="stage-title">Aglow · 可点击交互原型</div>
-<div class="stage-sub">跑步详情草案：点 ⓘ 看含义，并按本场数据给一条建议（确认后再编码）</div>
+<div class="stage-sub">本场点评草案：首次打开详情会模拟问 AI，再进同一条走缓存（确认后再编码）</div>
 
 <div class="phone">
   <div class="notch"></div>
@@ -1523,10 +1543,107 @@ function openDetail(id, fromMap){
   const x=WK_INDEXED[id];
   let html = (x.type==='游泳') ? swimDetailHTML(x,id) : genericDetailHTML(x,id);
   document.getElementById('detailBody').innerHTML=html;
+  mountWorkoutCoach(x);
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-detail').classList.add('active');
   document.querySelector('.content').scrollTop=0;
 }
+
+/* ===== 本场点评：首次打开问 AI，按 id 缓存 ===== */
+const workoutCoachCache={};
+let coachTimer=null;
+function mountWorkoutCoach(x){
+  const slot=document.getElementById('workoutCoachSlot');
+  if(!slot) return;
+  if(coachTimer){ clearTimeout(coachTimer); coachTimer=null; }
+  const cached=workoutCoachCache[x.id];
+  if(cached){
+    slot.innerHTML=workoutCoachHTML(x, cached, true);
+    return;
+  }
+  slot.innerHTML=`<div class="coach-card">
+    <div class="ch"><div>
+      <h3>✨ 本场点评</h3>
+      <div class="sub">结合本场数据生成分析和建议，结果会记住</div>
+    </div></div>
+    <div class="coach-load"><span class="typing"><i></i><i></i><i></i></span>正在分析本场…</div>
+  </div>`;
+  const id=x.id;
+  coachTimer=setTimeout(()=>{
+    const pack=workoutCoachPack(x);
+    workoutCoachCache[id]=pack;
+    const s=document.getElementById('workoutCoachSlot');
+    if(s && shareWorkoutId===id) s.innerHTML=workoutCoachHTML(x, pack, false);
+  }, 900);
+}
+function refreshWorkoutCoach(id){
+  delete workoutCoachCache[id];
+  const x=WK_INDEXED[id];
+  if(x) mountWorkoutCoach(x);
+}
+function workoutCoachPack(x){
+  const pace=x.km?paceText(x.min,x.km):'—';
+  const hist=typeof sameTypeAvgPace==='function'?sameTypeAvgPace(x):null;
+  const fmt=p=>{const m=Math.floor(p),s=Math.round((p-m)*60);return m+"'"+String(s).padStart(2,'0')+'"';};
+  if(x.type==='游泳'){
+    return {
+      vibe:'技术有氧',
+      verdict:`本场 ${Math.round(x.km*1000)} 米，均心率 ${x.avgHR}。配速和划次都还稳，适合当作技术底，不必再加强度。`,
+      facts:[{l:'距离',v:Math.round(x.km*1000)+' 米'},{l:'均心率',v:x.avgHR+' 次/分'}],
+      actions:['下次有一组可以略提划频，看 SWOLF 会不会掉','隔天再游，给肩背留恢复']
+    };
+  }
+  if(x.type==='力量训练' || x.type==='瑜伽'){
+    return {
+      vibe:x.type==='瑜伽'?'恢复向':'力量日',
+      verdict:`本场 ${x.min} 分钟${x.type}，均心率 ${x.avgHR}。强度落在可恢复区间，今天不必再加有氧。`,
+      facts:[{l:'时长',v:x.min+' 分钟'},{l:'均心率',v:x.avgHR+' 次/分'}],
+      actions:x.type==='瑜伽'
+        ?['今晚尽量准点睡，把这次当成主动恢复','明天有氧保持轻松配速即可']
+        :['同一肌群隔 48 小时再练','明天若跑步，前 1 公里再收一点']
+    };
+  }
+  const histLabel=hist?fmt(hist)+'/km':'暂无对比';
+  let verdict=`本场 ${x.km} 公里，均速 ${pace}，心率 ${x.avgHR}。`;
+  let vibe='稳态有氧';
+  let actions=['下次前 1–2 公里按均速再慢 5–8 秒出发','睡够 7 小时再安排节奏课'];
+  if(hist){
+    const d=(x.min/x.km-hist)*60;
+    if(d<=-8){ vibe='偏快'; verdict+=`比近期同类快约 ${Math.abs(Math.round(d))} 秒/公里，注意恢复。`; actions=['明天改轻松跑或休息','补足睡眠后再碰间歇']; }
+    else if(d>=8){ vibe='轻松日'; verdict+=`比近期同类慢约 ${Math.round(d)} 秒/公里，如果是恢复跑，这样刚好。`; actions=['保持这种「能说话」的配速','周末再安排一次稍长的稳态']; }
+    else { verdict+=`和近期同类配速接近，节奏稳定。`; }
+  } else {
+    verdict+=`峰值 ${x.maxHR}，没有长时间顶死，适合作为有氧底。`;
+  }
+  return {
+    vibe,
+    verdict,
+    facts:[{l:'本场配速',v:pace},{l:'近期同类',v:histLabel}],
+    actions
+  };
+}
+function workoutCoachHTML(x, pack, fromCache){
+  const facts=pack.facts.map(f=>`<span><small>${f.l}</small><b>${f.v}</b></span>`).join('');
+  const acts=pack.actions.map(a=>`<li>${a}</li>`).join('');
+  const foot=fromCache?'已缓存 · 下次打开不再请求':'刚刚生成 · 已记住本场';
+  return `<div class="coach-card">
+    <div class="ch"><div>
+      <h3>✨ 本场点评</h3>
+      <div class="sub">结合本场数据的分析与下次建议。ⓘ 仍是指标说明，不重复请求。</div>
+    </div></div>
+    <div class="coach-vibe">${pack.vibe}</div>
+    <p class="coach-verdict">${pack.verdict}</p>
+    <div class="coach-facts">${facts}</div>
+    <div class="coach-next">下次可以</div>
+    <ol>${acts}</ol>
+    <div class="coach-foot">
+      <span class="cached">${foot}</span>
+      <button type="button" onclick="refreshWorkoutCoach(${x.id})">重新分析</button>
+    </div>
+    <div class="coach-note">建议仅供参考，不构成医疗诊断。无 API Key 时正式版只显示设置引导。</div>
+  </div>`;
+}
+
 function genericDetailHTML(x,id){
   if(x.km>0 && x.type!=='游泳') return runStyleDetailHTML(x,id);
   const ic=icon(x.type);
@@ -1541,7 +1658,7 @@ function genericDetailHTML(x,id){
   let html=`<div class="detail-hero">
     <div class="dtype"><span class="di" style="background:${ic[1]}">${ic[0]}</span>${x.type}</div>
     <div class="ddate">${x.d.getFullYear()}年${fmtMD(x.d)} ${x.t} 开始</div>
-  </div>${metrics}`;
+  </div>${metrics}<div id="workoutCoachSlot"></div>`;
   html+=`<div class="card"><h3><span class="h3-left">心率曲线 ${infoBtn('hr')}</span><span class="muted">平均 ${x.avgHR} · 峰值 ${x.maxHR}</span></h3>${hrCurveSVG(x)}
     ${hrZonesHTML(x)}</div>`;
   return html;
@@ -1576,6 +1693,7 @@ function runStyleDetailHTML(x,id){
       <div class="wchip"><span>💧</span><div><small>湿度</small><b>${hum}%</b></div></div>
     </div>`;
   }
+  html+=`<div id="workoutCoachSlot"></div>`;
   html+=`<div class="card">
     <h3><span class="h3-left">心率 ${infoBtn('hr')}</span></h3>
     <div class="pair-row">
@@ -1724,6 +1842,7 @@ function swimDetailHTML(x){
     <div class="mc"><b>${laps}</b><small>趟</small><span>趟数</span></div>
     <div class="mc"><b>${Math.round(strokesPerLap*laps)}</b><small>次</small><span>总划次</span></div>
   </div>`;
+  html+=`<div id="workoutCoachSlot"></div>`;
   html+=`<div class="card"><h3>分段</h3>
     ${lapRows.map(r=>`<div class="split-row"><span style="width:28px;color:var(--sub)">${r.i}</span>
       <span style="width:40px">${pool}m</span>

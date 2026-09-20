@@ -40,6 +40,9 @@
 		C1000000000000000000001D /* WorkoutLocalCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001D /* WorkoutLocalCache.swift */; };
 		C1000000000000000000001E /* RunningWorkoutDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001E /* RunningWorkoutDetailView.swift */; };
 		C1000000000000000000001F /* MetricGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001F /* MetricGuide.swift */; };
+		C10000000000000000000020 /* WorkoutCoachModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000020 /* WorkoutCoachModels.swift */; };
+		C10000000000000000000021 /* WorkoutCoachStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000021 /* WorkoutCoachStore.swift */; };
+		C10000000000000000000022 /* WorkoutCoachCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000022 /* WorkoutCoachCard.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -78,6 +81,9 @@
 		B1000000000000000000001D /* WorkoutLocalCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLocalCache.swift; sourceTree = "<group>"; };
 		B1000000000000000000001E /* RunningWorkoutDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunningWorkoutDetailView.swift; sourceTree = "<group>"; };
 		B1000000000000000000001F /* MetricGuide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricGuide.swift; sourceTree = "<group>"; };
+		B10000000000000000000020 /* WorkoutCoachModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCoachModels.swift; sourceTree = "<group>"; };
+		B10000000000000000000021 /* WorkoutCoachStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCoachStore.swift; sourceTree = "<group>"; };
+		B10000000000000000000022 /* WorkoutCoachCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCoachCard.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -130,6 +136,7 @@
 				B10000000000000000000003 /* InsightModels.swift */,
 				B10000000000000000000014 /* SleepModels.swift */,
 				B10000000000000000000018 /* WeeklyAdviceModels.swift */,
+				B10000000000000000000020 /* WorkoutCoachModels.swift */,
 				B10000000000000000000011 /* LLMProvider.swift */,
 			);
 			path = Models;
@@ -142,6 +149,7 @@
 				B10000000000000000000005 /* AnalysisEngine.swift */,
 				B10000000000000000000006 /* AIService.swift */,
 				B10000000000000000000019 /* AdviceHistoryStore.swift */,
+				B10000000000000000000021 /* WorkoutCoachStore.swift */,
 				B1000000000000000000001C /* PlaceGeocoder.swift */,
 				B1000000000000000000001D /* WorkoutLocalCache.swift */,
 			);
@@ -169,6 +177,7 @@
 				B10000000000000000000012 /* WorkoutDetailView.swift */,
 				B1000000000000000000001E /* RunningWorkoutDetailView.swift */,
 				B1000000000000000000001F /* MetricGuide.swift */,
+				B10000000000000000000022 /* WorkoutCoachCard.swift */,
 				B10000000000000000000017 /* WorkoutRouteMapView.swift */,
 				B1000000000000000000001B /* WorkoutLocationsMapView.swift */,
 				B10000000000000000000013 /* MarkdownText.swift */,
@@ -290,6 +299,9 @@
 				C1000000000000000000001D /* WorkoutLocalCache.swift in Sources */,
 				C1000000000000000000001E /* RunningWorkoutDetailView.swift in Sources */,
 				C1000000000000000000001F /* MetricGuide.swift in Sources */,
+				C10000000000000000000020 /* WorkoutCoachModels.swift in Sources */,
+				C10000000000000000000021 /* WorkoutCoachStore.swift in Sources */,
+				C10000000000000000000022 /* WorkoutCoachCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

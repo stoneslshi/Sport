@@ -28,6 +28,12 @@ struct WorkoutDetailView: View {
                 if detailed.isSwimming {
                     swimHero
                     swimMetricsGrid
+                    WorkoutCoachCard(
+                        record: record,
+                        detailed: detailed,
+                        isDetailReady: !isLoading,
+                        peerAvgPace: vm.averageSwimPacePer100m(excluding: record.id)
+                    )
                     if !detailed.swimLaps.isEmpty { swimLapsCard }
                     if detailed.swimSets.count > 1 { swimSetsCard }
                     if !detailed.splits.isEmpty || !detailed.swimLaps.isEmpty { swimPaceCard }
@@ -44,11 +50,18 @@ struct WorkoutDetailView: View {
                         detailed: detailed,
                         tint: tint,
                         peerAvgPace: vm.averagePaceMinPerKM(of: record.activityType, excluding: record.id),
+                        isDetailReady: !isLoading,
                         onMapTap: { showRouteReplay = true }
                     )
                 } else {
                     header
                     metricsGrid
+                    WorkoutCoachCard(
+                        record: record,
+                        detailed: detailed,
+                        isDetailReady: !isLoading,
+                        peerAvgPace: vm.averagePaceMinPerKM(of: record.activityType, excluding: record.id)
+                    )
                     if detailed.hasWeatherInfo { weatherInfoCard }
                     if detailed.hasRoute { routeMapCard }
                     if showElevationCard { elevationCard }

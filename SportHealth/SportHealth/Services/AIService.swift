@@ -250,4 +250,75 @@ struct AIService {
         // 去掉可能出现的首尾引号
         return content.trimmingCharacters(in: CharacterSet(charactersIn: "\"“”'"))
     }
+
+    // MARK: - 本场点评（短 JSON）
+
+    static func generateWorkoutCoach(sessionSummary: String, config: Config) async throws -> WorkoutCoachBrief {
+        guard !config.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw AIError.missingAPIKey
+        }
+        let trimmedBase = config.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        guard let url = URL(string: trimmedBase + "/chat/completions") else {
+            throw AIError.invalidBaseURL
+        }
+
+        let systemPrompt = """
+        你是「Aglow」App 的运动健康教练。请根据**这一场**运动的聚合数据，输出**严格 JSON**（不要 Markdown、不要代码围栏、不要额外解释）。
+
+        JSON 结构：
+        {
+          "vibe": "2到4字标签，如稳态有氧/偏快/轻松日/力量日/技术有氧",
+          "verdict": "一句话结论，不超过60字，必须引用输入里的具体数字",
+          "facts": [
+            {"label":"不超过6字","value":"不超过16字"},
+            {"label":"不超过6字","value":"不超过16字"}
+          ],
+          "actions": ["下次行动1，不超过24字","行动2，不超过24字"]
+        }
+
+        规则：
+        1. facts 恰好 2 条；actions 1～2 条；
+        2. 只使用输入数据，禁止编造；没有对比数据就不要写「比近期」；
+        3. 行动要具体、可执行，覆盖训练或恢复；
+        4. 不要输出坐标、地点或免责声明（界面已有）。
+        """
+
+        let requestBody = ChatRequest(
+            model: config.model,
+            messages: [
+                .init(role: "system", content: systemPrompt),
+                .init(role: "user", content: "本场数据如下，请只输出 JSON：\n\n" + sessionSummary)
+            ],
+            temperature: 0.5
+        )
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 60
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try JSONEncoder().encode(requestBody)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw AIError.decodingFailed
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            let apiMessage = (try? JSONDecoder().decode(ErrorResponse.self, from: data))?.error?.message
+            let fallback = String(data: data.prefix(300), encoding: .utf8) ?? "未知错误"
+            throw AIError.httpError(status: http.statusCode, message: apiMessage ?? fallback)
+        }
+        guard let decoded = try? JSONDecoder().decode(ChatResponse.self, from: data) else {
+            throw AIError.decodingFailed
+        }
+        guard let content = decoded.choices.first?.message.content,
+              !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw AIError.emptyResponse
+        }
+        guard let brief = WorkoutCoachBrief.parse(from: content) else {
+            throw AIError.decodingFailed
+        }
+        return brief
+    }
 }

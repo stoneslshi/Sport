@@ -9,6 +9,7 @@ struct RunStyleDetailStack: View {
     let detailed: WorkoutRecord
     let tint: Color
     var peerAvgPace: Double?
+    var isDetailReady: Bool = false
     var onMapTap: () -> Void
 
     @State private var showAllSplits = false
@@ -21,6 +22,12 @@ struct RunStyleDetailStack: View {
             }
             runHero
             if detailed.hasWeatherInfo { weatherRow }
+            WorkoutCoachCard(
+                record: record,
+                detailed: detailed,
+                isDetailReady: isDetailReady,
+                peerAvgPace: peerAvgPace
+            )
 
             if !detailed.heartRateSeries.isEmpty {
                 heartRateSection
